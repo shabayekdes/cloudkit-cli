@@ -32,5 +32,13 @@ echo "$ecs_out" | grep -q "Usage: ecs" || fail "ecs did not print usage"
 ( source "$REPO_ROOT/main.sh"; ecs ) 2>/dev/null && fail "ecs should exit non-zero" || true
 echo "ecs usage output: OK"
 
+# Test 4: gce with no args prints usage and returns non-zero
+echo ""
+echo "=== Test 4: gce with no args prints usage and returns non-zero ==="
+gce_out=$( ( source "$REPO_ROOT/main.sh"; gce ) 2>&1 ) || true
+echo "$gce_out" | grep -q "Usage: gce" || fail "gce did not print usage"
+( source "$REPO_ROOT/main.sh"; gce ) 2>/dev/null && fail "gce should exit non-zero" || true
+echo "gce usage output: OK"
+
 echo ""
 echo "=== All smoke tests passed ==="

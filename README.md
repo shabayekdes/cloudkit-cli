@@ -180,8 +180,18 @@ Notes:
 
 - `gce` helper with subcommands:
   - `gce ls [--filter <pattern>]` -- list GCE instances (optional name filter)
-  - `gce ssh <instance> [--zone <zone>] [command]` -- SSH to a GCE VM (optional remote command)
-  - `gce scp <source> <destination> [--zone <zone>]` -- copy files to/from a GCE VM
+  - `gce ls-running` -- list only running instances
+  - `gce ls-stopped` -- list only stopped (`TERMINATED`) instances
+  - `gce start <instance>` / `gce stop <instance>` / `gce reset <instance>` -- start, stop, or hard-reset a VM
+  - `gce ssh <instance> [options] [command]` -- SSH to a GCE VM (optional remote command)
+    - `--tunnel-iap` / `--no-iap` -- force or disable connecting through IAP (IAP is used automatically when `--forward` is given)
+    - `--forward <local:host:remote>` -- local port forward; repeatable
+    - `--tunnel-only` -- with `--forward`, hold the tunnel(s) open without a shell
+  - `gce scp <source>... <destination> [--tunnel-iap] [-r]` -- copy files to/from a GCE VM
+  - `gce port-forward <remote-port> <local-port> <instance> [host]` -- forward a port via IAP
+    - **Without host:** forwards from the VM itself (`gcloud compute start-iap-tunnel`)
+    - **With host:** forwards from a remote service through the VM (e.g., Cloud SQL private IP, Memorystore)
+  - All instance commands accept `--zone <zone>` and `--project <project>`. When `--zone` is omitted, it is looked up from the instance name.
 
 - `gce-ig` helper with subcommands:
   - `gce-ig list [--region <region>]` -- list managed instance groups
@@ -210,7 +220,9 @@ aws_logout             # clear session
 source /path/cloudkit-cli/main.sh
 gcloud_session         # select config, authenticate, view session table
 gce ls                 # list GCE instances
-gce ssh my-vm --zone us-central1-a
+gce ssh my-vm          # zone is auto-detected
+gce ssh my-vm --forward 3308:127.0.0.1:3306 --tunnel-only
+gce port-forward 3306 3308 my-vm 10.20.0.5
 gce-ig list            # list managed instance groups
 gcloud_switch          # switch to another config
 gcloud_logout          # clear session
@@ -261,6 +273,8 @@ gcloud_logout          # clear session
 - No configurations listed -- create one with `gcloud config configurations create <name>` and set account/project
 - Authentication fails -- try `gcloud_session --reauth` to force re-login
 - `gce ssh` permission denied -- ensure your account has `compute.instances.osLogin` or OS Login is configured
+- `gce` reports an instance in multiple zones -- pass `--zone` explicitly
+- IAP tunnel fails -- ensure a firewall rule allows ingress from `35.235.240.0/20` and your account has `iap.tunnelInstances.accessViaIAP`
 - `gce-ig` region required -- most instance group commands require `--region <region>`
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
@@ -272,7 +286,7 @@ gcloud_logout          # clear session
 - `services/ec2.sh` -- `ec2` command group: list instances, SSM session, port forwarding, file upload
 - `services/_ec2_upload.sh` -- file upload script using Expect for SSM port forwarding transfers
 - `services/ecs.sh` -- `ecs` command group: clusters, services, tasks, exec, logs, stop, describe
-- `services/gce.sh` -- `gce` command group: list instances, SSH, SCP
+- `services/gce.sh` -- `gce` command group: list, start/stop/reset, SSH, SCP, IAP port forwarding
 - `services/gce_ig.sh` -- `gce-ig` command group: list, describe, recreate, restart managed instance groups
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
