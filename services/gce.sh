@@ -72,7 +72,10 @@ _gce_resolve_zone() {
   fi
   if [[ $(echo "$zones" | wc -l) -gt 1 ]]; then
     echo "Error: instance '$instance' exists in multiple zones:" >&2
-    echo "$zones" | sed 's/^/  /' >&2
+    local z
+    while IFS= read -r z; do
+      echo "  $z" >&2
+    done <<< "$zones"
     echo "Pass --zone explicitly." >&2
     return 1
   fi
