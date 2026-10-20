@@ -34,12 +34,34 @@ ec2() {
       ;;
 
     session)
-      if [[ $# -lt 2 ]]; then
-        echo "Usage: ec2 session <instance-id>"
+      if [[ "$2" == "-h" || "$2" == "--help" ]]; then
+        echo "Usage: ec2 session [instance-id]"
+        echo "Omit the instance ID to pick from running instances."
         return 1
       fi
+
+      local instance_id="$2"
+      if [[ -z "$instance_id" ]]; then
+        local rows_file rc _name _az _ip
+        rows_file=$(mktemp)
+        # shellcheck disable=SC2016
+        aws ec2 describe-instances \
+          --filters Name=instance-state-name,Values=running \
+          --query 'Reservations[].Instances[].[InstanceId, Tags[?Key==`Name`]|[0].Value, Placement.AvailabilityZone, PrivateIpAddress]' \
+          --output text \
+          | awk -F'\t' -v OFS='|' '{ if ($2 == "None") $2 = "-"; $1 = $1; print }' > "$rows_file"
+
+        _ck_pick "Running EC2 instances" "Instance ID|Name|AZ|Private IP" "$rows_file"
+        rc=$?
+        rm -f "$rows_file"
+        if [[ $rc -ne 0 ]]; then
+          return 1
+        fi
+        IFS='|' read -r instance_id _name _az _ip <<< "$CK_PICKED"
+      fi
+
       aws ssm start-session \
-        --target "$2"
+        --target "$instance_id"
       ;;
 
     run)
@@ -126,7 +148,7 @@ Commands:
   ls                        List all EC2 instances
   ls-running                List only running EC2 instances
   ls-stopped                List only stopped EC2 instances
-  session <instance-id>     Start an SSM session to an instance
+  session [instance-id]     Start an SSM session (omit ID to pick a running instance)
   run <instance-id>         Start (run) an EC2 instance
   stop <instance-id>        Stop an EC2 instance
   port-forward <remote-port> <local-port> <instance-id> [host]
@@ -140,6 +162,7 @@ Examples:
   ec2 ls
   ec2 ls-running
   ec2 ls-stopped
+  ec2 session
   ec2 session i-1234567890abcdef0
   ec2 run i-1234567890abcdef0
   ec2 stop i-1234567890abcdef0

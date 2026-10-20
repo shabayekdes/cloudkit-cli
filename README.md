@@ -139,7 +139,7 @@ Notes:
   - `ec2 ls` -- list all EC2 instances (id, name, state)
   - `ec2 ls-running` -- list only running EC2 instances
   - `ec2 ls-stopped` -- list only stopped EC2 instances
-  - `ec2 session <instance-id>` -- start an SSM shell session
+  - `ec2 session [instance-id]` -- start an SSM shell session (omit the ID to pick from running instances)
   - `ec2 run <instance-id>` -- start (run) an EC2 instance
   - `ec2 stop <instance-id>` -- stop an EC2 instance
   - `ec2 port-forward <remote-port> <local-port> <instance-id> [host]` -- start SSM port forwarding
@@ -183,7 +183,8 @@ Notes:
   - `gce ls-running` -- list only running instances
   - `gce ls-stopped` -- list only stopped (`TERMINATED`) instances
   - `gce start <instance>` / `gce stop <instance>` / `gce reset <instance>` -- start, stop, or hard-reset a VM
-  - `gce ssh <instance> [options] [command]` -- SSH to a GCE VM (optional remote command)
+  - `gce ssh [instance] [options] [command]` -- SSH to a GCE VM (optional remote command)
+    - Omit the instance to pick from running VMs (filtered by `--zone`/`--project` if given); a single running VM is auto-selected
     - `--tunnel-iap` / `--no-iap` -- force or disable connecting through IAP (IAP is used automatically when `--forward` is given)
     - `--forward <local:host:remote>` -- local port forward; repeatable
     - `--tunnel-only` -- with `--forward`, hold the tunnel(s) open without a shell
@@ -209,7 +210,7 @@ Notes:
 source /path/cloudkit-cli/main.sh
 aws_session            # select profile, SSO login, view session table
 ec2 ls-running         # list running instances
-ec2 session i-0123...  # SSM into an instance
+ec2 session            # pick a running instance and SSM into it
 aws_switch             # switch to another profile mid-session
 aws_logout             # clear session
 ```
@@ -220,6 +221,7 @@ aws_logout             # clear session
 source /path/cloudkit-cli/main.sh
 gcloud_session         # select config, authenticate, view session table
 gce ls                 # list GCE instances
+gce ssh                # pick a running VM and SSH into it
 gce ssh my-vm          # zone is auto-detected
 gce ssh my-vm --forward 3308:127.0.0.1:3306 --tunnel-only
 gce port-forward 3306 3308 my-vm 10.20.0.5
@@ -283,6 +285,7 @@ gcloud_logout          # clear session
 
 - `main.sh` -- entrypoint; exports `CLOUDKIT_DIR`, loads session and service helpers
 - `session.sh` -- session management for both AWS and GCloud: profile/config picker, SSO/auth login, session table, prompt updates
+- `services/_picker.sh` -- shared interactive instance picker used by `ec2 session` and `gce ssh`
 - `services/ec2.sh` -- `ec2` command group: list instances, SSM session, port forwarding, file upload
 - `services/_ec2_upload.sh` -- file upload script using Expect for SSM port forwarding transfers
 - `services/ecs.sh` -- `ecs` command group: clusters, services, tasks, exec, logs, stop, describe

@@ -96,6 +96,34 @@ _gce_location_args() {
   fi
 }
 
+# Let the user pick a running instance (filtered by the caller's project/zone).
+# Sets the caller's `instance` and `zone`.
+_gce_pick_running() {
+  local list_args=() rows_file rc _ip
+  if [[ -n "$project" ]]; then
+    list_args+=(--project "$project")
+  fi
+  if [[ -n "$zone" ]]; then
+    list_args+=(--zones "$zone")
+  fi
+
+  rows_file=$(mktemp)
+  gcloud compute instances list \
+    "${list_args[@]}" \
+    --filter="status=RUNNING" \
+    --format="value(name,zone.basename(),networkInterfaces[0].networkIP)" \
+    | tr '\t' '|' > "$rows_file"
+
+  _ck_pick "Running GCE instances" "Name|Zone|Internal IP" "$rows_file"
+  rc=$?
+  rm -f "$rows_file"
+  if [[ $rc -ne 0 ]]; then
+    return 1
+  fi
+
+  IFS='|' read -r instance zone _ip <<< "$CK_PICKED"
+}
+
 # GCE (GCloud Compute Engine) CLI function
 gce() {
   local zone="" project="" tunnel_iap="auto" disable_iap=false tunnel_only=false recurse=false
@@ -134,18 +162,21 @@ gce() {
       ;;
 
     ssh)
-      if [[ $# -lt 2 ]]; then
+      if [[ "$2" == "-h" || "$2" == "--help" ]]; then
         cat << 'EOF'
-Usage: gce ssh <instance-name> [--zone <zone>] [--project <project>]
+Usage: gce ssh [instance-name] [--zone <zone>] [--project <project>]
                [--tunnel-iap | --no-iap] [--forward <local:host:remote>]...
                [--tunnel-only] [--] [command]
 
+  instance-name   Omit to pick from running instances
   --zone          Instance zone (auto-detected when omitted)
   --tunnel-iap    Connect through IAP (default when --forward is used)
   --no-iap        Never connect through IAP
   --forward       Local port forward; repeatable
   --tunnel-only   With --forward: hold the tunnel open without a shell
 
+Example: gce ssh
+Example: gce ssh --forward 3308:127.0.0.1:3306 --tunnel-only
 Example: gce ssh my-vm
 Example: gce ssh my-vm --zone us-central1-a "ls -la"
 Example: gce ssh my-vm --forward 3308:127.0.0.1:3306 --forward 6380:127.0.0.1:6379
@@ -154,8 +185,14 @@ EOF
         return 1
       fi
 
-      local instance="$2"
-      _gce_parse_flags "${@:3}"
+      local instance=""
+      if [[ $# -ge 2 && "$2" != -* ]]; then
+        instance="$2"
+        _gce_parse_flags "${@:3}"
+      else
+        _gce_parse_flags "${@:2}"
+        _gce_pick_running || return 1
+      fi
       local command="${positional[*]}"
       _gce_location_args "$instance" || return 1
 
@@ -268,9 +305,10 @@ Commands:
   start <instance-name>   Start an instance
   stop <instance-name>    Stop an instance
   reset <instance-name>   Hard-reset an instance
-  ssh <instance-name> [--tunnel-iap | --no-iap] [--forward <local:host:remote>]...
+  ssh [instance-name] [--tunnel-iap | --no-iap] [--forward <local:host:remote>]...
       [--tunnel-only] [command]
-                          SSH to a GCE VM (optional command / port forwards)
+                          SSH to a GCE VM (optional command / port forwards);
+                          omit the instance to pick from running VMs
   scp <source>... <destination> [--tunnel-iap] [-r]
                           Copy files to/from a GCE VM
   port-forward <remote-port> <local-port> <instance-name> [host]
@@ -287,6 +325,7 @@ Examples:
   gce ls-running
   gce start my-vm
   gce stop my-vm --zone us-central1-a
+  gce ssh
   gce ssh my-vm
   gce ssh my-vm --zone us-central1-a "ls -la"
   gce ssh laravel-production-cs77 --project speero-works --forward 3308:127.0.0.1:3306 --tunnel-only

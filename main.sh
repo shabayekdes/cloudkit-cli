@@ -10,6 +10,8 @@ export CLOUDKIT_DIR
 alias sso_login="aws sso login --profile"
 # shellcheck source=session.sh disable=SC1090
 source "$CLOUDKIT_DIR/session.sh"
+# shellcheck source=services/_picker.sh disable=SC1090
+source "$CLOUDKIT_DIR/services/_picker.sh"
 # shellcheck source=services/ec2.sh disable=SC1090
 source "$CLOUDKIT_DIR/services/ec2.sh"
 # shellcheck source=services/ecs.sh disable=SC1090
