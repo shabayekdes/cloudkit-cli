@@ -4,6 +4,8 @@
 # Run from repo root: bash test/test_install.sh
 
 REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]:-$0}")/.." && pwd)"
+# shellcheck source=test/isolate.sh
+source "$REPO_ROOT/test/isolate.sh"
 
 set -e
 cd "$REPO_ROOT"
@@ -14,7 +16,7 @@ tmp=$(mktemp -d)
 trap 'rm -rf "$tmp"' EXIT
 export HOME="$tmp/home"
 export CLOUDSDK_CONFIG="$tmp/gcloud"
-unset CLOUDSDK_ACTIVE_CONFIG_NAME CLOUDSDK_CORE_ACCOUNT
+
 mkdir -p "$HOME"
 
 echo "=== Test 1: install.sh adds the rc block once, even when re-run ==="

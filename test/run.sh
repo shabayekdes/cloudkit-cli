@@ -5,11 +5,12 @@
 # Resolve repo root first (before set -e) so we can cd reliably
 _run_sh_dir="$(cd "$(dirname "${BASH_SOURCE[0]:-$0}")" && pwd)"
 REPO_ROOT="$(cd "$_run_sh_dir/.." && pwd)"
+# shellcheck source=test/isolate.sh
+source "$_run_sh_dir/isolate.sh"
 
 # Keep tests away from the real gcloud config (sourcing session.sh may create ck-none)
 CLOUDSDK_CONFIG="$(mktemp -d)"
 export CLOUDSDK_CONFIG
-unset CLOUDSDK_ACTIVE_CONFIG_NAME
 
 set -e
 cd "$REPO_ROOT" || { echo "Could not cd to REPO_ROOT=$REPO_ROOT" >&2; exit 1; }

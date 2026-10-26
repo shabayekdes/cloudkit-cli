@@ -8,11 +8,12 @@
 
 _test_sh_dir="$(cd "$(dirname "${BASH_SOURCE[0]:-$0}")" && pwd)"
 REPO_ROOT="$(cd "$_test_sh_dir/.." && pwd)"
+# shellcheck source=test/isolate.sh
+source "$_test_sh_dir/isolate.sh"
 
 # Keep tests away from the real gcloud config (sourcing session.sh may create ck-none)
 CLOUDSDK_CONFIG="$(mktemp -d)"
 export CLOUDSDK_CONFIG
-unset CLOUDSDK_ACTIVE_CONFIG_NAME
 
 set -euo pipefail
 
