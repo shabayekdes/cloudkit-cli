@@ -2,7 +2,7 @@
 # Requires: shellcheck (brew install shellcheck), bash
 
 SHELL := /bin/bash
-SCRIPTS := main.sh session.sh services/_picker.sh services/ec2.sh services/ecs.sh services/gce.sh services/gce_ig.sh
+SCRIPTS := main.sh session.sh services/_picker.sh services/ec2.sh services/ecs.sh services/gce.sh services/gce_ig.sh ck.sh
 
 .PHONY: shellcheck test ci help
 

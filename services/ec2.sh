@@ -8,7 +8,7 @@ fi
 export SERVICES_DIR
 
 # EC2 CLI function
-ec2() {
+_ck_ec2() {
   case "$1" in
     ls)
       # shellcheck disable=SC2016  # backticks are JMESPath literal syntax
@@ -35,7 +35,7 @@ ec2() {
 
     session)
       if [[ "$2" == "-h" || "$2" == "--help" ]]; then
-        echo "Usage: ec2 session [instance-id]"
+        echo "Usage: ck ec2 session [instance-id]"
         echo "Omit the instance ID to pick from running instances."
         return 1
       fi
@@ -66,7 +66,7 @@ ec2() {
 
     run)
       if [[ $# -lt 2 ]]; then
-        echo "Usage: ec2 run <instance-id>"
+        echo "Usage: ck ec2 run <instance-id>"
         return 1
       fi
       echo "Starting instance $2..."
@@ -78,7 +78,7 @@ ec2() {
 
     stop)
       if [[ $# -lt 2 ]]; then
-        echo "Usage: ec2 stop <instance-id>"
+        echo "Usage: ck ec2 stop <instance-id>"
         return 1
       fi
       echo "Stopping instance $2..."
@@ -90,14 +90,14 @@ ec2() {
 
     port-forward)
       if [[ $# -lt 4 ]]; then
-        echo "Usage: ec2 port-forward <remote-port> <local-port> <instance-id> [host]"
+        echo "Usage: ck ec2 port-forward <remote-port> <local-port> <instance-id> [host]"
         echo ""
         echo "Examples:"
         echo "  # Forward to EC2 instance itself (e.g., web server)"
-        echo "  ec2 port-forward 8080 8080 i-1234567890abcdef0"
+        echo "  ck ec2 port-forward 8080 8080 i-1234567890abcdef0"
         echo ""
         echo "  # Forward to remote service through EC2 (e.g., RDS)"
-        echo "  ec2 port-forward 3306 3306 i-1234567890abcdef0 mydb.123.us-west-2.rds.amazonaws.com"
+        echo "  ck ec2 port-forward 3306 3306 i-1234567890abcdef0 mydb.123.us-west-2.rds.amazonaws.com"
         return 1
       fi
       
@@ -125,10 +125,10 @@ ec2() {
 
     upload)
       if [[ $# -lt 3 ]]; then
-        echo "Usage: ec2 upload <instance-id> <local-file> [remote-path] [port]"
+        echo "Usage: ck ec2 upload <instance-id> <local-file> [remote-path] [port]"
         echo ""
         echo "Examples:"
-        echo "  ec2 upload i-1234567890abcdef0 /local/file.txt /home/ec2-user/file.txt 8888"
+        echo "  ck ec2 upload i-1234567890abcdef0 /local/file.txt /home/ec2-user/file.txt 8888"
         return 1
       fi
 
@@ -142,7 +142,7 @@ ec2() {
 
     *)
       cat << 'EOF'
-Usage: ec2 <command> [options]
+Usage: ck ec2 <command> [options]
 
 Commands:
   ls                        List all EC2 instances
@@ -159,16 +159,16 @@ Commands:
                             Upload a file to an instance via SSM
 
 Examples:
-  ec2 ls
-  ec2 ls-running
-  ec2 ls-stopped
-  ec2 session
-  ec2 session i-1234567890abcdef0
-  ec2 run i-1234567890abcdef0
-  ec2 stop i-1234567890abcdef0
-  ec2 port-forward 8080 8080 i-1234567890abcdef0
-  ec2 port-forward 3306 3306 i-1234567890abcdef0 mydb.123456789012.us-west-2.rds.amazonaws.com
-  ec2 upload i-1234567890abcdef0 /local/file.txt /home/ec2-user/file.txt 8888
+  ck ec2 ls
+  ck ec2 ls-running
+  ck ec2 ls-stopped
+  ck ec2 session
+  ck ec2 session i-1234567890abcdef0
+  ck ec2 run i-1234567890abcdef0
+  ck ec2 stop i-1234567890abcdef0
+  ck ec2 port-forward 8080 8080 i-1234567890abcdef0
+  ck ec2 port-forward 3306 3306 i-1234567890abcdef0 mydb.123456789012.us-west-2.rds.amazonaws.com
+  ck ec2 upload i-1234567890abcdef0 /local/file.txt /home/ec2-user/file.txt 8888
 EOF
       return 1
       ;;

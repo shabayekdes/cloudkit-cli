@@ -2,7 +2,7 @@
 SERVICES_DIR=$(dirname "$0")
 export SERVICES_DIR
 
-# Parse flags shared by gce subcommands. Flags may appear anywhere; everything
+# Parse flags shared by `ck gce` subcommands. Flags may appear anywhere; everything
 # after a bare `--` is treated as positional. Populates the caller's locals
 # (zone, project, tunnel_iap, disable_iap, tunnel_only, recurse, forwards,
 # positional) via dynamic scoping, so callers must declare them first.
@@ -125,7 +125,7 @@ _gce_pick_running() {
 }
 
 # GCE (GCloud Compute Engine) CLI function
-gce() {
+_ck_gce() {
   local zone="" project="" tunnel_iap="auto" disable_iap=false tunnel_only=false recurse=false
   local forwards=() positional=() args=()
 
@@ -149,7 +149,7 @@ gce() {
     start|stop|reset)
       local action="$1"
       if [[ $# -lt 2 ]]; then
-        echo "Usage: gce $action <instance-name> [--zone <zone>] [--project <project>]"
+        echo "Usage: ck gce $action <instance-name> [--zone <zone>] [--project <project>]"
         return 1
       fi
       _gce_parse_flags "${@:2}"
@@ -164,7 +164,7 @@ gce() {
     ssh)
       if [[ "$2" == "-h" || "$2" == "--help" ]]; then
         cat << 'EOF'
-Usage: gce ssh [instance-name] [--zone <zone>] [--project <project>]
+Usage: ck gce ssh [instance-name] [--zone <zone>] [--project <project>]
                [--tunnel-iap | --no-iap] [--forward <local:host:remote>]...
                [--tunnel-only] [--] [command]
 
@@ -175,12 +175,12 @@ Usage: gce ssh [instance-name] [--zone <zone>] [--project <project>]
   --forward       Local port forward; repeatable
   --tunnel-only   With --forward: hold the tunnel open without a shell
 
-Example: gce ssh
-Example: gce ssh --forward 3308:127.0.0.1:3306 --tunnel-only
-Example: gce ssh my-vm
-Example: gce ssh my-vm --zone us-central1-a "ls -la"
-Example: gce ssh my-vm --forward 3308:127.0.0.1:3306 --forward 6380:127.0.0.1:6379
-Example: gce ssh my-vm --forward 3308:127.0.0.1:3306 --tunnel-only
+Example: ck gce ssh
+Example: ck gce ssh --forward 3308:127.0.0.1:3306 --tunnel-only
+Example: ck gce ssh my-vm
+Example: ck gce ssh my-vm --zone us-central1-a "ls -la"
+Example: ck gce ssh my-vm --forward 3308:127.0.0.1:3306 --forward 6380:127.0.0.1:6379
+Example: ck gce ssh my-vm --forward 3308:127.0.0.1:3306 --tunnel-only
 EOF
         return 1
       fi
@@ -225,10 +225,10 @@ EOF
     scp)
       _gce_parse_flags "${@:2}"
       if [[ ${#positional[@]} -lt 2 ]]; then
-        echo "Usage: gce scp <source>... <destination> [--zone <zone>] [--project <project>] [--tunnel-iap] [-r]"
-        echo "Example: gce scp ./file.txt my-vm:/tmp/file.txt"
-        echo "Example: gce scp my-vm:/var/log/syslog ./syslog --zone us-central1-a"
-        echo "Example: gce scp -r ./dist my-vm:/srv/app --tunnel-iap"
+        echo "Usage: ck gce scp <source>... <destination> [--zone <zone>] [--project <project>] [--tunnel-iap] [-r]"
+        echo "Example: ck gce scp ./file.txt my-vm:/tmp/file.txt"
+        echo "Example: ck gce scp my-vm:/var/log/syslog ./syslog --zone us-central1-a"
+        echo "Example: ck gce scp -r ./dist my-vm:/srv/app --tunnel-iap"
         return 1
       fi
 
@@ -260,14 +260,14 @@ EOF
     port-forward)
       _gce_parse_flags "${@:2}"
       if [[ ${#positional[@]} -lt 3 ]]; then
-        echo "Usage: gce port-forward <remote-port> <local-port> <instance-name> [host] [--zone <zone>] [--project <project>]"
+        echo "Usage: ck gce port-forward <remote-port> <local-port> <instance-name> [host] [--zone <zone>] [--project <project>]"
         echo ""
         echo "Examples:"
         echo "  # Forward to the VM itself (e.g., web server) via an IAP TCP tunnel"
-        echo "  gce port-forward 8080 8080 my-vm"
+        echo "  ck gce port-forward 8080 8080 my-vm"
         echo ""
         echo "  # Forward to a remote service through the VM (e.g., Cloud SQL private IP)"
-        echo "  gce port-forward 3306 3308 my-vm 10.20.0.5"
+        echo "  ck gce port-forward 3306 3308 my-vm 10.20.0.5"
         return 1
       fi
 
@@ -295,7 +295,7 @@ EOF
 
     *)
       cat << 'EOF'
-Usage: gce <command> [options]
+Usage: ck gce <command> [options]
 
 Commands:
   ls [--filter <pattern>]
@@ -320,19 +320,19 @@ All instance commands accept [--zone <zone>] [--project <project>].
 When --zone is omitted, it is looked up from the instance name.
 
 Examples:
-  gce ls
-  gce ls --filter laravel-staging
-  gce ls-running
-  gce start my-vm
-  gce stop my-vm --zone us-central1-a
-  gce ssh
-  gce ssh my-vm
-  gce ssh my-vm --zone us-central1-a "ls -la"
-  gce ssh laravel-production-cs77 --project speero-works --forward 3308:127.0.0.1:3306 --tunnel-only
-  gce scp ./file.txt my-vm:/tmp/file.txt
-  gce scp my-vm:/var/log/syslog ./syslog --zone us-central1-a
-  gce port-forward 8080 8080 my-vm
-  gce port-forward 3306 3308 my-vm 10.20.0.5
+  ck gce ls
+  ck gce ls --filter laravel-staging
+  ck gce ls-running
+  ck gce start my-vm
+  ck gce stop my-vm --zone us-central1-a
+  ck gce ssh
+  ck gce ssh my-vm
+  ck gce ssh my-vm --zone us-central1-a "ls -la"
+  ck gce ssh laravel-production-cs77 --project speero-works --forward 3308:127.0.0.1:3306 --tunnel-only
+  ck gce scp ./file.txt my-vm:/tmp/file.txt
+  ck gce scp my-vm:/var/log/syslog ./syslog --zone us-central1-a
+  ck gce port-forward 8080 8080 my-vm
+  ck gce port-forward 3306 3308 my-vm 10.20.0.5
 EOF
       return 1
       ;;
