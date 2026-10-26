@@ -309,8 +309,8 @@ _ck_doctor() {
   fi
   _ck_doctor_tool session-manager-plugin "$level" "needed by ec2 session/port-forward, ecs exec" \
     session-manager-plugin --version
-  _ck_doctor_tool expect warn "needed by ck ec2 upload"
-  _ck_doctor_tool nc warn "needed by ck ec2 upload"
+  _ck_doctor_tool expect warn "needed by ck ec2 upload (installed on first use)"
+  _ck_doctor_tool nc warn "needed by ck ec2 upload (installed on first use)"
   if [ "$use_aws" = true ]; then
     local profile_count=0
     if command -v aws > /dev/null 2>&1; then

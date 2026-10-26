@@ -7,6 +7,30 @@ else
 fi
 export SERVICES_DIR
 
+# `ck ec2 upload` needs expect and nc, which the installer leaves out; offer
+# to install them on first use. Returns 1 if any are still missing.
+_ck_ec2_upload_deps() {
+  local tool missing=""
+  for tool in expect nc; do
+    command -v "$tool" > /dev/null 2>&1 || missing="$missing,$tool"
+  done
+  missing="${missing#,}"
+  [ -z "$missing" ] && return 0
+
+  printf "%sck ec2 upload needs: %s%s\n" "${YELLOW:-}" "$missing" "${NC:-}"
+  local installer="${CLOUDKIT_DIR:-}/install.sh"
+  if [ -f "$installer" ]; then
+    bash "$installer" --deps "$missing" || true
+  fi
+  # Literal list, not $missing: zsh doesn't word-split unquoted variables
+  for tool in expect nc; do
+    if ! command -v "$tool" > /dev/null 2>&1; then
+      printf "%sError: %s is not installed; install it and retry.%s\n" "${RED:-}" "$tool" "${NC:-}"
+      return 1
+    fi
+  done
+}
+
 # EC2 CLI function
 _ck_ec2() {
   case "$1" in
@@ -137,6 +161,7 @@ _ck_ec2() {
       local remote_file_name="$4"
       local port="$5"
 
+      _ck_ec2_upload_deps || return 1
       "$SERVICES_DIR/_ec2_upload.sh" "$instance_id" "$file_to_send" "$remote_file_name" "$port"
       ;;
 

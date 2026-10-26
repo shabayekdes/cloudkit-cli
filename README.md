@@ -4,6 +4,7 @@
 
 <p align="center">
   <a href="https://github.com/shabayekdes/cloudkit-cli/actions/workflows/ci.yml"><img src="https://github.com/shabayekdes/cloudkit-cli/actions/workflows/ci.yml/badge.svg" alt="CI"></a>
+  <a href="https://github.com/shabayekdes/cloudkit-cli/releases/latest"><img src="https://img.shields.io/github/v/release/shabayekdes/cloudkit-cli?label=release&color=2EA44F" alt="Latest release"></a>
   <img src="https://img.shields.io/badge/shell-bash%20%7C%20zsh-4EAA25" alt="Shell: bash | zsh">
   <img src="https://img.shields.io/badge/clouds-AWS%20%7C%20Google%20Cloud-FF8A00" alt="Clouds: AWS | Google Cloud">
   <img src="https://img.shields.io/badge/platform-macOS%20%7C%20Linux-lightgrey" alt="Platform: macOS | Linux">
@@ -56,6 +57,7 @@ Pass options after `bash -s --`, for example `curl … | bash -s -- --gcp --yes`
 | `--no-rc` | Don't edit shell rc files |
 | `--no-setup` | Don't offer credential setup |
 | `--dir <path>` | Install directory (default: `$CLOUDKIT_HOME` or `~/.cloudkit`) |
+| `--deps <tools>` | Install only these tools and exit, e.g. `--deps expect,nc` |
 | `--uninstall` | Remove CloudKit (never touches `~/.aws` or gcloud configuration) |
 
 To upgrade, re-run the same command: it moves `~/.cloudkit` to the newest release. Check what you have with `ck version`.
@@ -79,7 +81,7 @@ The installer handles these for you; install them by hand if you prefer:
 | `jq`, `python3` | everything |
 | [AWS CLI v2](https://docs.aws.amazon.com/cli/latest/userguide/getting-started-install.html) | AWS commands |
 | [Session Manager plugin](https://docs.aws.amazon.com/systems-manager/latest/userguide/session-manager-working-with-install-plugin.html) | `ck ec2 session`, `port-forward`, `upload`, `ck ecs exec` |
-| `expect`, `nc` | `ck ec2 upload` |
+| `expect`, `nc` | `ck ec2 upload` (not installed up front; `ck ec2 upload` offers to install them the first time) |
 | [Google Cloud CLI](https://cloud.google.com/sdk/docs/install) (`gcloud`) | Google Cloud commands |
 
 Then add `source /path/to/cloudkit-cli/main.sh` to your `~/.zshrc` or `~/.bashrc`.

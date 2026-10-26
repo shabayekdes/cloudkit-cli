@@ -48,6 +48,8 @@ Usage: install.sh [options]
   --no-setup     Don't offer credential setup at the end
   --dir <path>   Install directory (default: $CLOUDKIT_HOME or ~/.cloudkit;
                  ignored when run from a clone)
+  --deps <tools> Install only these tools (comma-separated, e.g. expect,nc)
+                 and exit; used by commands that need extra tools
   --uninstall    Remove the rc block (and the install directory, if this
                  installer created it). Never touches ~/.aws or gcloud config.
   -h, --help     Show this help
@@ -153,11 +155,16 @@ has_dep() {
   esac
 }
 
-# Dependencies for the selected scope, in install order.
+# Dependencies for the selected scope, in install order. expect and nc are
+# left out: `ck ec2 upload` installs them on first use (--deps expect,nc).
 wanted_deps() {
+  if [ -n "$DEPS_ONLY" ]; then
+    echo "$DEPS_ONLY"
+    return
+  fi
   local deps="curl jq python3"
   if [ "$WANT_AWS" = true ]; then
-    deps="$deps unzip aws session-manager-plugin expect nc"
+    deps="$deps unzip aws session-manager-plugin"
   fi
   if [ "$WANT_GCP" = true ]; then
     deps="$deps gcloud"
@@ -489,7 +496,7 @@ uninstall() {
 # --- main ------------------------------------------------------------------
 
 main() {
-  WANT_AWS="" WANT_GCP="" ASSUME_YES=false DO_DEPS=true DO_RC=true DO_SETUP=true
+  WANT_AWS="" WANT_GCP="" ASSUME_YES=false DO_DEPS=true DO_RC=true DO_SETUP=true DEPS_ONLY=""
   local do_uninstall=false dir="${CLOUDKIT_HOME:-$HOME/.cloudkit}"
   FAILED=""
 
@@ -506,6 +513,11 @@ main() {
       --dir)
         [ -n "${2:-}" ] || die "--dir needs a path"
         dir="$2"
+        shift
+        ;;
+      --deps)
+        [ -n "${2:-}" ] || die "--deps needs a tool list, e.g. expect,nc"
+        DEPS_ONLY="${2//,/ }"
         shift
         ;;
       --uninstall) do_uninstall=true ;;
@@ -525,6 +537,13 @@ main() {
   if [ "$do_uninstall" = true ]; then
     uninstall "$dir"
     return 0
+  fi
+
+  if [ -n "$DEPS_ONLY" ]; then
+    detect_platform
+    install_deps
+    [ -z "$FAILED" ]
+    return
   fi
 
   printf "\n%sCloudKit installer%s %s(AWS & Google Cloud shell helpers)%s\n\n" "${BOLD}" "${NC}" "${GRAY}" "${NC}"
