@@ -1,6 +1,6 @@
 # shellcheck shell=bash
 # ECS CLI function
-ecs() {
+_ck_ecs() {
   case "$1" in
     clusters)
       # List all clusters
@@ -12,7 +12,7 @@ ecs() {
     services)
       # List services in a cluster
       if [[ $# -lt 2 ]]; then
-        echo "Usage: ecs services <cluster-name>"
+        echo "Usage: ck ecs services <cluster-name>"
         return 1
       fi
       aws ecs list-services \
@@ -24,7 +24,7 @@ ecs() {
     tasks)
       # List all tasks in a cluster
       if [[ $# -lt 2 ]]; then
-        echo "Usage: ecs tasks <cluster-name> [--running]"
+        echo "Usage: ck ecs tasks <cluster-name> [--running]"
         return 1
       fi
 
@@ -82,7 +82,7 @@ ecs() {
     service-tasks)
       # List tasks for a specific service
       if [[ $# -lt 3 ]]; then
-        echo "Usage: ecs service-tasks <cluster-name> <service-name> [--running]"
+        echo "Usage: ck ecs service-tasks <cluster-name> <service-name> [--running]"
         return 1
       fi
 
@@ -142,7 +142,7 @@ ecs() {
     task-info)
       # Get detailed info about a task
       if [[ $# -lt 3 ]]; then
-        echo "Usage: ecs task-info <cluster-name> <task-id>"
+        echo "Usage: ck ecs task-info <cluster-name> <task-id>"
         return 1
       fi
       aws ecs describe-tasks \
@@ -167,9 +167,9 @@ ecs() {
     exec)
       # Execute command in a container
       if [[ $# -lt 4 ]]; then
-        echo "Usage: ecs exec <cluster-name> <task-id> <container-name> [command]"
-        echo "Example: ecs exec my-cluster abc123 my-container /bin/bash"
-        echo "Example: ecs exec my-cluster abc123 my-container ls -la"
+        echo "Usage: ck ecs exec <cluster-name> <task-id> <container-name> [command]"
+        echo "Example: ck ecs exec my-cluster abc123 my-container /bin/bash"
+        echo "Example: ck ecs exec my-cluster abc123 my-container ls -la"
         return 1
       fi
 
@@ -195,10 +195,10 @@ ecs() {
     exec-running)
       # Execute command in the first running task in a cluster
       if [[ $# -lt 3 ]]; then
-        echo "Usage: ecs exec-running <cluster-name> <container-name> [--service <service-name>] [command]"
-        echo "Example: ecs exec-running my-cluster my-container /bin/bash"
-        echo "Example: ecs exec-running my-cluster my-container --service my-service /bin/bash"
-        echo "Example: ecs exec-running my-cluster my-container --service my-service ls -la"
+        echo "Usage: ck ecs exec-running <cluster-name> <container-name> [--service <service-name>] [command]"
+        echo "Example: ck ecs exec-running my-cluster my-container /bin/bash"
+        echo "Example: ck ecs exec-running my-cluster my-container --service my-service /bin/bash"
+        echo "Example: ck ecs exec-running my-cluster my-container --service my-service ls -la"
         return 1
       fi
 
@@ -256,7 +256,7 @@ ecs() {
     logs)
       # Get logs from a task
       if [[ $# -lt 3 ]]; then
-        echo "Usage: ecs logs <cluster-name> <task-id> [--tail N]"
+        echo "Usage: ck ecs logs <cluster-name> <task-id> [--tail N]"
         return 1
       fi
 
@@ -292,7 +292,7 @@ ecs() {
     stop)
       # Stop a task
       if [[ $# -lt 3 ]]; then
-        echo "Usage: ecs stop <cluster-name> <task-id> [reason]"
+        echo "Usage: ck ecs stop <cluster-name> <task-id> [reason]"
         return 1
       fi
 
@@ -308,7 +308,7 @@ ecs() {
     describe)
       # Describe a service
       if [[ $# -lt 3 ]]; then
-        echo "Usage: ecs describe <cluster-name> <service-name>"
+        echo "Usage: ck ecs describe <cluster-name> <service-name>"
         return 1
       fi
       aws ecs describe-services \
@@ -320,7 +320,7 @@ ecs() {
 
     *)
       cat << 'EOF'
-Usage: ecs <command> [options]
+Usage: ck ecs <command> [options]
 
 Commands:
   clusters                 List all ECS clusters
@@ -344,19 +344,19 @@ Commands:
                           Describe a service
 
 Examples:
-  ecs clusters
-  ecs services my-cluster
-  ecs tasks my-cluster --running
-  ecs service-tasks my-cluster my-service --running
-  ecs task-info my-cluster abc123def456
-  ecs exec my-cluster abc123def456 my-container /bin/bash
-  ecs exec my-cluster abc123def456 my-container ls -la /var/log
-  ecs exec-running my-cluster my-container /bin/bash
-  ecs exec-running my-cluster my-container --service my-service /bin/bash
-  ecs exec-running my-cluster my-container ls -la /var/log
-  ecs logs my-cluster abc123def456
-  ecs stop my-cluster abc123def456
-  ecs describe my-cluster my-service
+  ck ecs clusters
+  ck ecs services my-cluster
+  ck ecs tasks my-cluster --running
+  ck ecs service-tasks my-cluster my-service --running
+  ck ecs task-info my-cluster abc123def456
+  ck ecs exec my-cluster abc123def456 my-container /bin/bash
+  ck ecs exec my-cluster abc123def456 my-container ls -la /var/log
+  ck ecs exec-running my-cluster my-container /bin/bash
+  ck ecs exec-running my-cluster my-container --service my-service /bin/bash
+  ck ecs exec-running my-cluster my-container ls -la /var/log
+  ck ecs logs my-cluster abc123def456
+  ck ecs stop my-cluster abc123def456
+  ck ecs describe my-cluster my-service
 EOF
       return 1
       ;;

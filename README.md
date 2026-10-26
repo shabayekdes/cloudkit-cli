@@ -1,317 +1,259 @@
-## CloudKit CLI -- User Guide
+<p align="center">
+  <img src="assets/logo.svg" alt="CloudKit — CLI toolkit for AWS & Google Cloud" width="580">
+</p>
 
-Shell helpers for AWS and GCloud. Source one file, get interactive session management, service wrappers, and a color-coded prompt -- across both clouds.
+<p align="center">
+  <a href="https://github.com/shabayekdes/cloudkit-cli/actions/workflows/ci.yml"><img src="https://github.com/shabayekdes/cloudkit-cli/actions/workflows/ci.yml/badge.svg" alt="CI"></a>
+  <img src="https://img.shields.io/badge/shell-bash%20%7C%20zsh-4EAA25" alt="Shell: bash | zsh">
+  <img src="https://img.shields.io/badge/clouds-AWS%20%7C%20Google%20Cloud-FF8A00" alt="Clouds: AWS | Google Cloud">
+  <img src="https://img.shields.io/badge/platform-macOS%20%7C%20Linux-lightgrey" alt="Platform: macOS | Linux">
+  <a href="LICENSE"><img src="https://img.shields.io/badge/license-MIT-blue" alt="License: MIT"></a>
+</p>
 
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+<p align="center">
+  <b>One <code>ck</code> command for AWS and Google Cloud.</b><br>
+  Pick a profile, log in, and jump into your instances — without remembering a single long CLI flag.
+</p>
 
-### 1) Prerequisites
+---
 
-**Common**
+## What is CloudKit?
 
-- Install `jq` for JSON parsing (macOS: `brew install jq`)
-- Install `python3` (3.6+) for cross-platform credential expiry parsing
+CloudKit is a set of shell helpers that wraps the AWS CLI and `gcloud` behind a single `ck` command:
 
-**AWS**
+- **Session management** — pick an AWS profile (SSO, access keys, chained roles) or a gcloud configuration from a list, log in if needed, and see account, region, identity and credential expiry in one table.
+- **Per-terminal sessions** — each terminal has its own active profile/configuration, like `AWS_PROFILE`. Your prompt shows `[profile:region]` and `[gcloud:account:project]`, with a red `[PROD]` marker and banner for production.
+- **Service shortcuts** — list, start, stop and connect to EC2 and GCE instances, exec into ECS tasks, forward ports through SSM or IAP, and manage instance groups. Most commands offer an interactive picker when you leave out the instance.
+- **Guided setup** — `ck setup` walks you through creating AWS profiles and gcloud configurations; `ck doctor` checks that everything is installed and configured.
 
-- Install AWS CLI v2 (`aws --version`)
-- Configure AWS profiles in `~/.aws/config` (SSO, static keys, or credential_process -- all supported)
-- Install `expect` for file upload functionality (macOS: `brew install expect`)
-- Install `nc` (netcat) for file transfers (usually pre-installed on macOS/Linux)
+Works in **bash** and **zsh** on **macOS** and **Linux**.
 
-**GCloud**
+## Installation
 
-- Install Google Cloud SDK / `gcloud` CLI (`gcloud --version`)
-- Create at least one gcloud configuration (see examples below)
-
-**AWS configuration** (`~/.aws/config`):
-
-```ini
-[sso-session my-session]
-sso_start_url = https://example.awsapps.com/start
-sso_region = us-east-1
-sso_registration_scopes = sso:account:access
-
-[profile my-sso-profile]
-sso_session = my-session
-sso_account_id = 123456789012
-sso_role_name = ReadOnly
-region = us-east-1
-output = json
-```
-
-Chained profiles (role assumption via `source_profile`) are also supported:
-
-```ini
-[profile dev-admin]
-source_profile = my-sso-profile
-role_arn = arn:aws:iam::098765432109:role/AdminRole
-region = eu-west-1
-
-[profile prod-readonly]
-role_arn = arn:aws:iam::111222333444:role/ReadOnly
-source_profile = my-sso-profile
-region = us-west-2
-```
-
-**GCloud configuration** (`~/.config/gcloud/configurations/`):
-
-Each gcloud configuration is stored as a separate file. Create and manage them with the `gcloud` CLI:
+### Quick install
 
 ```bash
-# Create a configuration for a project
-gcloud config configurations create my-project
-gcloud config set core/account user@example.com
-gcloud config set core/project my-gcp-project
-gcloud config set compute/region us-central1
-gcloud config set compute/zone us-central1-a
-
-# Create another configuration for a different project
-gcloud config configurations create staging
-gcloud config set core/account user@example.com
-gcloud config set core/project my-staging-project
-gcloud config set compute/region europe-west1
-gcloud config set compute/zone europe-west1-b
+curl -fsSL https://raw.githubusercontent.com/shabayekdes/cloudkit-cli/main/install.sh | bash
 ```
 
-The resulting config files look like this (`~/.config/gcloud/configurations/config_my-project`):
+The installer:
 
-```ini
-[core]
-account = user@example.com
-project = my-gcp-project
+1. Asks which clouds you use — AWS, Google Cloud, or both
+2. Installs missing dependencies after one confirmation, using `brew` (macOS) or `apt` / `dnf` / `yum` / `pacman` (Linux)
+3. Downloads CloudKit to `~/.cloudkit` (or updates it if it is already there)
+4. Adds a `source …/main.sh` block to `~/.zshrc` / `~/.bashrc` (re-running never duplicates it)
+5. Offers to set up your AWS / gcloud credentials
+6. Offers to restart your shell so `ck` works right away
 
-[compute]
-region = us-central1
-zone = us-central1-a
-```
+Pass options after `bash -s --`, for example `curl … | bash -s -- --gcp --yes`:
 
-`gcloud_session` discovers these configurations via `gcloud config configurations list` and presents them for selection.
+| Option | Effect |
+|---|---|
+| `--aws` / `--gcp` / `--all` | Install dependencies for one cloud or both (default: ask) |
+| `--yes` | Don't ask for confirmation |
+| `--no-deps` | Skip dependency installation |
+| `--no-rc` | Don't edit shell rc files |
+| `--no-setup` | Don't offer credential setup |
+| `--dir <path>` | Install directory (default: `$CLOUDKIT_HOME` or `~/.cloudkit`) |
+| `--uninstall` | Remove CloudKit (never touches `~/.aws` or gcloud configuration) |
 
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-
-### 2) Setup
-
-Source `main.sh` to load all helpers into your shell.
-
-- **One-time (current shell only):**
+### From a clone
 
 ```bash
-source /path/cloudkit-cli/main.sh
+git clone https://github.com/shabayekdes/cloudkit-cli.git
+cd cloudkit-cli
+./install.sh
 ```
 
-- **Permanent (every new shell):**
-  Add the line above to `~/.zshrc`, `~/.bashrc`, or `~/.bash_profile`.
+Running `./install.sh` from a clone uses that clone in place, so `git pull` updates CloudKit.
 
-Notes:
-- `main.sh` exports `CLOUDKIT_DIR` and loads all helper functions and aliases.
-- An alias `sso_login` is created for convenience: `sso_login <profile>`.
+### Dependencies
 
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+The installer handles these for you; install them by hand if you prefer:
 
-### 3) Commands -- AWS
+| Tool | Needed for |
+|---|---|
+| `jq`, `python3` | everything |
+| [AWS CLI v2](https://docs.aws.amazon.com/cli/latest/userguide/getting-started-install.html) | AWS commands |
+| [Session Manager plugin](https://docs.aws.amazon.com/systems-manager/latest/userguide/session-manager-working-with-install-plugin.html) | `ck ec2 session`, `port-forward`, `upload`, `ck ecs exec` |
+| `expect`, `nc` | `ck ec2 upload` |
+| [Google Cloud CLI](https://cloud.google.com/sdk/docs/install) (`gcloud`) | Google Cloud commands |
 
-- `aws_session`
-  - Lists all configured AWS profiles from `~/.aws/config` -- SSO, static keys, and credential_process
-  - If only one profile exists, it is auto-selected (no prompt)
-  - Performs SSO login if not already authenticated (SSO profiles only)
-  - After authentication, detects **chained profiles** (profiles with `source_profile`):
-    - **One chained profile**: auto-selects it
-    - **Multiple chained profiles**: displays a selection table
-    - **No chained profiles**: continues with the base profile
-  - Clears the terminal and displays account/profile/region in a styled table
-  - Updates the shell prompt with `[profile:region]` (bash and zsh)
-  - Warns if credentials will expire in ≤ 15 minutes (yellow) or ≤ 5 minutes (red)
+Then add `source /path/to/cloudkit-cli/main.sh` to your `~/.zshrc` or `~/.bashrc`.
 
-- `aws_logout`
-  - Unsets all AWS session environment variables (`AWS_PROFILE`, `AWS_REGION`, etc.)
-  - Restores the original shell prompt
-  - Does not delete any files from `~/.aws/`
+### Set up credentials
 
-- `aws_switch`
-  - Switches to a different profile without re-running the full `aws_session` flow
-  - Triggers SSO login automatically if the selected profile needs it
-  - Updates the prompt and checks for upcoming expiry
-
-- `sso_login <profile>` (alias)
-  - Shortcut for `aws sso login --profile <profile>`
-
-- `ec2` helper with subcommands:
-  - `ec2 ls` -- list all EC2 instances (id, name, state)
-  - `ec2 ls-running` -- list only running EC2 instances
-  - `ec2 ls-stopped` -- list only stopped EC2 instances
-  - `ec2 session <instance-id>` -- start an SSM shell session
-  - `ec2 run <instance-id>` -- start (run) an EC2 instance
-  - `ec2 stop <instance-id>` -- stop an EC2 instance
-  - `ec2 port-forward <remote-port> <local-port> <instance-id> [host]` -- start SSM port forwarding
-    - **Without host:** forwards from the EC2 instance itself (e.g., web server on the instance)
-    - **With host:** forwards from a remote service through the EC2 instance (e.g., RDS, ElastiCache)
-  - `ec2 upload <instance-id> <local-file> [remote-path] [port]` -- upload a file to an EC2 instance via SSM port forwarding
-
-- `ecs` helper with subcommands:
-  - `ecs clusters` -- list all ECS clusters
-  - `ecs services <cluster>` -- list services in a cluster
-  - `ecs tasks <cluster> [--running]` -- list tasks in a cluster (optionally only running)
-  - `ecs service-tasks <cluster> <service> [--running]` -- list tasks for a specific service
-  - `ecs task-info <cluster> <task-id>` -- get detailed task information (status, container, image, uptime)
-  - `ecs exec <cluster> <task-id> <container> [command]` -- execute command in a container (default: /bin/bash)
-  - `ecs logs <cluster> <task-id> [--tail N]` -- get task information and container logs
-  - `ecs stop <cluster> <task-id> [reason]` -- stop a running task
-  - `ecs describe <cluster> <service>` -- describe a service (status, running/desired count, task definition)
-
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-
-### 4) Commands -- GCloud
-
-- `gcloud_session [--reauth]`
-  - Lists all gcloud configurations and lets you select one
-  - If only one configuration exists, it is auto-selected (no prompt)
-  - Validates existing credentials or initiates `gcloud auth login`
-  - Pass `--reauth` to force re-authentication
-  - Clears the terminal and displays account/config/project/region in a styled table
-  - Updates the shell prompt with `[gcloud:account:project]` (bash and zsh)
-
-- `gcloud_logout`
-  - Unsets gcloud session environment variables (`GCLOUD_ACTIVE_CONFIG`, `GCLOUD_ACCOUNT`, `GCLOUD_PROJECT`)
-  - Restores the original shell prompt
-
-- `gcloud_switch`
-  - Switches to a different gcloud configuration without re-running full authentication
-  - Updates the prompt and session table
-
-- `gce` helper with subcommands:
-  - `gce ls [--filter <pattern>]` -- list GCE instances (optional name filter)
-  - `gce ls-running` -- list only running instances
-  - `gce ls-stopped` -- list only stopped (`TERMINATED`) instances
-  - `gce start <instance>` / `gce stop <instance>` / `gce reset <instance>` -- start, stop, or hard-reset a VM
-  - `gce ssh <instance> [options] [command]` -- SSH to a GCE VM (optional remote command)
-    - `--tunnel-iap` / `--no-iap` -- force or disable connecting through IAP (IAP is used automatically when `--forward` is given)
-    - `--forward <local:host:remote>` -- local port forward; repeatable
-    - `--tunnel-only` -- with `--forward`, hold the tunnel(s) open without a shell
-  - `gce scp <source>... <destination> [--tunnel-iap] [-r]` -- copy files to/from a GCE VM
-  - `gce port-forward <remote-port> <local-port> <instance> [host]` -- forward a port via IAP
-    - **Without host:** forwards from the VM itself (`gcloud compute start-iap-tunnel`)
-    - **With host:** forwards from a remote service through the VM (e.g., Cloud SQL private IP, Memorystore)
-  - All instance commands accept `--zone <zone>` and `--project <project>`. When `--zone` is omitted, it is looked up from the instance name.
-
-- `gce-ig` helper with subcommands:
-  - `gce-ig list [--region <region>]` -- list managed instance groups
-  - `gce-ig describe <group> --region <region>` -- describe a managed instance group
-  - `gce-ig recreate <group> --region <region>` -- replace instances (rolling replace)
-  - `gce-ig restart <group> --region <region>` -- restart instances (rolling restart)
-
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-
-### 5) Typical Workflow
-
-**AWS**
-
-```
-source /path/cloudkit-cli/main.sh
-aws_session            # select profile, SSO login, view session table
-ec2 ls-running         # list running instances
-ec2 session i-0123...  # SSM into an instance
-aws_switch             # switch to another profile mid-session
-aws_logout             # clear session
+```bash
+ck doctor          # check tools, AWS profiles, gcloud configurations, ADC, rc file
+ck setup aws       # AWS SSO (IAM Identity Center), access keys, or a chained role
+ck setup gcloud    # create/update a gcloud configuration, log in, optional ADC
 ```
 
-**GCloud**
+`ck setup` writes standard files (`~/.aws/config`, gcloud configurations), so profiles you already have keep working.
 
-```
-source /path/cloudkit-cli/main.sh
-gcloud_session         # select config, authenticate, view session table
-gce ls                 # list GCE instances
-gce ssh my-vm          # zone is auto-detected
-gce ssh my-vm --forward 3308:127.0.0.1:3306 --tunnel-only
-gce port-forward 3306 3308 my-vm 10.20.0.5
-gce-ig list            # list managed instance groups
-gcloud_switch          # switch to another config
-gcloud_logout          # clear session
+### Uninstall
+
+```bash
+~/.cloudkit/install.sh --uninstall
 ```
 
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+Removes the rc block and `~/.cloudkit`. Your `~/.aws` and gcloud configuration are left untouched.
 
-### 6) Verification Steps
+## Usage
 
-**AWS**
+Run `ck help` for all commands, or `ck help <command>` (e.g. `ck help gce`) for a command's options.
 
-- `aws_session` shows a table with correct Account (formatted `XXXX-XXXX-XXXX`), Profile, Region, Identity ARN, and User ID
-- Single-profile auto-selection works without prompting
-- Chained profiles (via `source_profile`) are detected and offered after authentication
-- Shell prompt updates to `[profile:region]`
-- `ec2 ls` outputs instance data without errors
-- `ecs clusters` lists available ECS clusters
+### AWS
 
-**GCloud**
+```bash
+ck aws login                 # pick a profile, SSO login if needed, show the session table
+ck aws switch                # switch to another profile in this terminal
+ck aws sso my-profile        # shortcut for: aws sso login --profile my-profile
+ck aws logout                # clear the AWS session from this terminal
+```
 
-- `gcloud_session` shows a table with Account, Configuration, Project, and Region
-- Single-config auto-selection works without prompting
-- Shell prompt updates to `[gcloud:account:project]`
-- `gce ls` lists GCE instances
-- `gce-ig list` lists managed instance groups
+After login you get a session table like:
 
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+```
+Account      1234-5678-9012
+Profile      dev-admin
+Region       eu-west-1
+Identity     SSO AdministratorAccess as jane@example.com
+Credentials  SSO · expires 2026-10-21 14:20 UTC (in 7h 12m)
+```
 
-### 7) Troubleshooting
+**EC2**
 
-**Common**
+```bash
+ck ec2 ls                    # all instances (id, name, state)
+ck ec2 ls-running            # running instances only
+ck ec2 session               # pick a running instance and open an SSM shell
+ck ec2 session i-0abc123     # SSM shell on a specific instance
+ck ec2 run i-0abc123         # start an instance
+ck ec2 stop i-0abc123        # stop an instance
 
-- `jq: command not found` -- install `jq` (macOS: `brew install jq`)
+# forward localhost:8080 to port 80 on the instance
+ck ec2 port-forward 80 8080 i-0abc123
+# reach a private RDS database through the instance
+ck ec2 port-forward 5432 5433 i-0abc123 mydb.xxxx.eu-west-1.rds.amazonaws.com
 
-**AWS**
+ck ec2 upload i-0abc123 ./build.tar.gz /tmp/build.tar.gz
+```
 
-- `aws: command not found` or AWS CLI v1 detected -- install `awscli` (macOS: `brew install awscli`)
-- No profiles listed in `aws_session` -- ensure `~/.aws/config` profiles include `sso_account_id`, `aws_access_key_id`, or `credential_process`
-- Chained profile not detected -- ensure it has `source_profile = <base-profile-name>` matching exactly
-- Chained profile fails to assume role -- verify the `role_arn` is correct and permissions allow it
-- SSM session errors -- ensure the instance has SSM agent installed and proper IAM role
-- ECS exec fails -- ensure ECS Exec is enabled (`enableExecuteCommand: true`) and the task role has SSM permissions
-- File upload fails -- ensure `expect` and `nc` are installed, SSM agent is running, and the port is available
+**ECS**
 
-**GCloud**
+```bash
+ck ecs clusters                              # list clusters
+ck ecs services my-cluster                   # list services
+ck ecs service-tasks my-cluster api --running
+ck ecs exec my-cluster <task-id> app         # shell into a container (default /bin/bash)
+ck ecs exec my-cluster <task-id> app "php artisan migrate:status"
+ck ecs logs my-cluster <task-id> --tail 100
+ck ecs describe my-cluster api               # status, running/desired, task definition
+ck ecs stop my-cluster <task-id> "stuck task"
+```
 
-- `gcloud: command not found` -- install the Google Cloud SDK
-- No configurations listed -- create one with `gcloud config configurations create <name>` and set account/project
-- Authentication fails -- try `gcloud_session --reauth` to force re-login
-- `gce ssh` permission denied -- ensure your account has `compute.instances.osLogin` or OS Login is configured
-- `gce` reports an instance in multiple zones -- pass `--zone` explicitly
-- IAP tunnel fails -- ensure a firewall rule allows ingress from `35.235.240.0/20` and your account has `iap.tunnelInstances.accessViaIAP`
-- `gce-ig` region required -- most instance group commands require `--region <region>`
+### Google Cloud
 
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+```bash
+ck gcloud login              # pick a configuration, authenticate, show the session table
+ck gcloud login --reauth     # force re-authentication
+ck gcloud switch             # switch configuration in this terminal only
+ck gcloud logout             # clear the gcloud session from this terminal
+```
 
-### 8) Repository Structure
+The gcloud selection applies to the current terminal only (via `CLOUDSDK_ACTIVE_CONFIG_NAME`). New terminals start with no gcloud session until you run `ck gcloud login` — set `CLOUDKIT_GCLOUD_GLOBAL=1` to use gcloud's global configuration instead.
 
-- `main.sh` -- entrypoint; exports `CLOUDKIT_DIR`, loads session and service helpers
-- `session.sh` -- session management for both AWS and GCloud: profile/config picker, SSO/auth login, session table, prompt updates
-- `services/ec2.sh` -- `ec2` command group: list instances, SSM session, port forwarding, file upload
-- `services/_ec2_upload.sh` -- file upload script using Expect for SSM port forwarding transfers
-- `services/ecs.sh` -- `ecs` command group: clusters, services, tasks, exec, logs, stop, describe
-- `services/gce.sh` -- `gce` command group: list, start/stop/reset, SSH, SCP, IAP port forwarding
-- `services/gce_ig.sh` -- `gce-ig` command group: list, describe, recreate, restart managed instance groups
+**Compute Engine**
 
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+```bash
+ck gce ls                            # list VMs
+ck gce ls --filter web               # filter by name
+ck gce start my-vm                   # start / stop / reset; zone is detected automatically
+ck gce ssh                           # pick a running VM and SSH into it
+ck gce ssh my-vm                     # SSH to a VM
+ck gce ssh my-vm --tunnel-iap        # SSH through IAP (no public IP needed)
+ck gce ssh my-vm "df -h"             # run a remote command
 
-### 9) Development / Testing
+# MySQL on the VM at localhost:3308, tunnel only (no shell)
+ck gce ssh my-vm --forward 3308:127.0.0.1:3306 --tunnel-only
+# Cloud SQL private IP through the VM
+ck gce port-forward 3306 3308 my-vm 10.20.0.5
 
-- **Lint (Shellcheck)**
-  Install [Shellcheck](https://github.com/koalaman/shellcheck) (e.g. `brew install shellcheck` on macOS), then run:
-  ```bash
-  make shellcheck
-  ```
+ck gce scp ./app.env my-vm:/tmp/     # copy files to/from a VM
+```
 
-- **Smoke tests** (no AWS/GCloud credentials required):
-  ```bash
-  make test
-  ```
+All instance commands accept `--zone <zone>` and `--project <project>`.
 
-- **CI**
-  On push or pull request to `main`, GitHub Actions runs Shellcheck and the smoke tests. See `.github/workflows/ci.yml`.
+**Managed instance groups**
 
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+```bash
+ck mig list --region us-central1
+ck mig describe web-mig --region us-central1
+ck mig restart web-mig --region us-central1     # rolling restart
+ck mig recreate web-mig --region us-central1    # rolling replace
+```
 
-### 10) Uninstall / Disable
+### Both clouds
 
-- Remove or comment out the `source /path/cloudkit-cli/main.sh` line from:
-  - `~/.zshrc` (Zsh) or
-  - `~/.bashrc` / `~/.bash_profile` (Bash)
-- Restart your terminal (or re-source the rc file)
+```bash
+ck status        # active AWS and gcloud sessions in this terminal (no network calls)
+ck doctor        # dependency and configuration check
+```
+
+### Configuration
+
+Set these environment variables in your rc file, before or after sourcing `main.sh`:
+
+| Variable | Effect |
+|---|---|
+| `CLOUDKIT_PROD_PATTERN` | Extended regex (case-insensitive) for production names. Matching AWS profiles or gcloud configs/projects get a red **PRODUCTION** banner and a `[PROD]` prompt marker. Default matches `prod`, `production`, `prd` as a separate word |
+| `CLOUDKIT_NO_PROMPT=1` | Don't change the shell prompt (useful with Starship / Powerlevel10k) |
+| `CLOUDKIT_NO_CLEAR=1` | Don't clear the terminal before showing the session table |
+| `CLOUDKIT_GCLOUD_GLOBAL=1` | New terminals use gcloud's global active configuration |
+
+### Troubleshooting
+
+Start with `ck doctor` — it lists missing tools with the command that installs them.
+
+- **`ck: command not found` right after installing** — open a new terminal or run `exec zsh` (`exec bash`)
+- **No profiles in `ck aws login`** — run `ck setup aws`, or make sure profiles in `~/.aws/config` have `sso_session`/`sso_account_id`, access keys, or `credential_process`
+- **SSM session fails** — the instance needs the SSM agent and an instance role with SSM permissions; your machine needs the Session Manager plugin
+- **ECS exec fails** — enable ECS Exec on the service (`enableExecuteCommand: true`) and give the task role SSM permissions
+- **"You do not currently have an active account selected"** in a new terminal — expected; run `ck gcloud login` (or set `CLOUDKIT_GCLOUD_GLOBAL=1`)
+- **IAP tunnel fails** — allow ingress from `35.235.240.0/20` and grant `iap.tunnelInstances.accessViaIAP`
+
+## Contributing
+
+Contributions are welcome! Please follow these rules so changes stay easy to review:
+
+1. **Open an issue first** for new features or behaviour changes, so we can agree on the approach.
+2. **Branch from `main`** and open the pull request against `main`. Keep each PR focused on one change.
+3. **Use [Conventional Commits](https://www.conventionalcommits.org/)** — e.g. `feat(gce): add scp picker`, `fix(session): handle expired SSO token`, `docs(readme): …`.
+4. **Support bash and zsh.** Everything sourced by `main.sh` runs in both shells: avoid bash-only syntax there (arrays, `read -p`, `${var,,}`), and guard globs that may not match.
+5. **Pass the checks** before pushing:
+   ```bash
+   make ci          # shellcheck + all tests
+   ```
+   CI runs the same on every pull request.
+6. **Add tests** in `test/` for new behaviour. Tests must not need real cloud credentials or network access — stub `aws` / `gcloud` on `PATH` (see `test/test_install.sh`).
+7. **Keep the docs in sync** — update `ck help` output and this README when you add or change a command.
+8. **Never commit secrets** — no account IDs, keys, tokens or real hostnames in code, tests or examples.
+
+Project layout:
+
+```
+install.sh              installer (dependencies, rc block, uninstall)
+main.sh                 entry point; loads everything behind `ck`
+ck.sh                   `ck` dispatcher, `ck status`, `ck help`
+session.sh              AWS and gcloud login/switch/logout, session table, prompt
+services/ec2.sh         ck ec2        services/ecs.sh       ck ecs
+services/gce.sh         ck gce        services/gce_ig.sh    ck mig
+services/setup.sh       ck setup, ck doctor
+services/_picker.sh     shared interactive instance picker
+test/                   smoke, auth, and install tests (`make test`)
+```
+
+## License
+
+Released under the [MIT License](LICENSE).
