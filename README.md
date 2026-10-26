@@ -30,139 +30,18 @@ CloudKit is a set of shell helpers that wraps the AWS CLI and `gcloud` behind a 
 
 Works in **bash** and **zsh** on **macOS** and **Linux**.
 
-## Installation
+## Documentation
 
-### Quick install
-
-```bash
-curl -fsSL https://github.com/shabayekdes/cloudkit-cli/releases/latest/download/install.sh | bash
-```
-
-The installer:
-
-1. Asks which clouds you use — AWS, Google Cloud, both, or neither (CloudKit and its common tools only)
-2. Installs missing dependencies after one confirmation, using `brew` (macOS) or `apt` / `dnf` / `yum` / `pacman` (Linux)
-3. Downloads the **latest release** of CloudKit to `~/.cloudkit` (or switches an existing install to it)
-4. Adds a `source …/main.sh` block to `~/.zshrc` / `~/.bashrc` (re-running never duplicates it)
-5. Offers to set up your AWS / gcloud credentials
-6. Offers to restart your shell so `ck` works right away
-
-Pass options after `bash -s --`, for example `curl … | bash -s -- --gcp --yes`:
-
-| Option | Effect |
-|---|---|
-| `--aws` / `--gcp` / `--all` | Install dependencies for one cloud or both (default: ask) |
-| `--core` | Install only the common tools (`curl`, `jq`, `python3`), without the AWS CLI or gcloud |
-| `--yes` | Don't ask for confirmation |
-| `--no-deps` | Skip dependency installation |
-| `--no-rc` | Don't edit shell rc files |
-| `--no-setup` | Don't offer credential setup |
-| `--dir <path>` | Install directory (default: `$CLOUDKIT_HOME` or `~/.cloudkit`) |
-| `--deps <tools>` | Install only these tools and exit, e.g. `--deps expect,nc` |
-| `--uninstall` | Remove CloudKit (never touches `~/.aws` or gcloud configuration) |
-
-To upgrade, re-run the same command: it moves `~/.cloudkit` to the newest release. Check what you have with `ck version`.
-
-### From a clone
-
-```bash
-git clone https://github.com/shabayekdes/cloudkit-cli.git
-cd cloudkit-cli
-./install.sh
-```
-
-Running `./install.sh` from a clone uses that clone in place, so `git pull` or `git checkout <tag>` controls the version.
-
-### Dependencies
-
-The installer handles these for you; install them by hand if you prefer:
-
-| Tool | Needed for |
-|---|---|
-| `jq`, `python3` | everything |
-| [AWS CLI v2](https://docs.aws.amazon.com/cli/latest/userguide/getting-started-install.html) | AWS commands |
-| [Session Manager plugin](https://docs.aws.amazon.com/systems-manager/latest/userguide/session-manager-working-with-install-plugin.html) | `ck ec2 session`, `port-forward`, `upload`, `ck ecs exec` |
-| `expect`, `nc` | `ck ec2 upload` (not installed up front; `ck ec2 upload` offers to install them the first time) |
-| [Google Cloud CLI](https://cloud.google.com/sdk/docs/install) (`gcloud`) | Google Cloud commands |
-
-Then add `source /path/to/cloudkit-cli/main.sh` to your `~/.zshrc` or `~/.bashrc`.
-
-### Set up credentials
-
-```bash
-ck doctor          # check tools, AWS profiles, gcloud configurations, ADC, rc file
-ck setup aws       # AWS SSO (IAM Identity Center), access keys, or a chained role
-ck setup gcloud    # create/update a gcloud configuration, log in, optional ADC
-```
-
-`ck setup` writes standard files (`~/.aws/config`, gcloud configurations), so profiles you already have keep working.
-
-### Uninstall
-
-```bash
-~/.cloudkit/install.sh --uninstall
-```
-
-Removes the rc block and `~/.cloudkit`. Your `~/.aws` and gcloud configuration are left untouched.
-
-## Usage
-
-📖 **Full documentation: [cloudkit-cli.pages.dev](https://cloudkit-cli.pages.dev)**: every command, its options, configuration and troubleshooting.
-
-```bash
-ck aws login                 # pick an AWS profile, SSO login if needed, show the session table
-ck ec2 session               # pick a running instance and open an SSM shell
-ck ecs exec-running my-cluster app --service api
-ck gcloud login              # pick a gcloud configuration and authenticate
-ck gce ssh my-vm --forward 3308:127.0.0.1:3306 --tunnel-only
-ck status                    # active sessions in this terminal
-```
-
-Run `ck help` for all commands, or `ck help <command>` (e.g. `ck help gce`) for a command's options.
+Installation, configuration, every command and troubleshooting are covered in the documentation at **[cloudkit-cli.pages.dev](https://cloudkit-cli.pages.dev)**. Start with [Getting started](https://cloudkit-cli.pages.dev/getting-started/).
 
 ## Contributing
 
-Contributions are welcome! Please follow these rules so changes stay easy to review:
+Thank you for considering contributing to CloudKit! The contribution guide can be found in the [CloudKit documentation](https://cloudkit-cli.pages.dev/contributing/).
 
-1. **Open an issue first** for new features or behaviour changes, so we can agree on the approach.
-2. **Branch from `main`** and open the pull request against `main`. Keep each PR focused on one change.
-3. **Use [Conventional Commits](https://www.conventionalcommits.org/)** — e.g. `feat(gce): add scp picker`, `fix(session): handle expired SSO token`, `docs(readme): …`.
-4. **Support bash and zsh.** Everything sourced by `main.sh` runs in both shells: avoid bash-only syntax there (arrays, `read -p`, `${var,,}`), and guard globs that may not match.
-5. **Pass the checks** before pushing:
-   ```bash
-   make ci          # shellcheck + all tests
-   ```
-   CI runs the same on every pull request. If you change `install.sh`, also run `make docker-shell SOURCE=local` to try a fresh install of your changes in Docker (see [docker/README.md](docker/README.md)).
-6. **Add tests** in `test/` for new behaviour. Tests must not need real cloud credentials or network access — stub `aws` / `gcloud` on `PATH` (see `test/test_install.sh`).
-7. **Keep the docs in sync** — update `ck help` output and the command's page in [`website/src/content/docs/`](website/src/content/docs/) when you add or change a command. `make test` fails if a subcommand is missing from either; preview with `make docs-serve`.
-8. **Never commit secrets** — no account IDs, keys, tokens or real hostnames in code, tests or examples.
+## Security Vulnerabilities
 
-Project layout:
-
-```
-install.sh              installer (dependencies, rc block, uninstall)
-main.sh                 entry point; loads everything behind `ck`
-ck.sh                   `ck` dispatcher, `ck status`, `ck help`
-session.sh              AWS and gcloud login/switch/logout, session table, prompt
-services/ec2.sh         ck ec2        services/ecs.sh       ck ecs
-services/gce.sh         ck gce        services/gce_ig.sh    ck mig
-services/setup.sh       ck setup, ck doctor
-services/_picker.sh     shared interactive instance picker
-test/                   smoke, auth, install, and docs tests (`make test`)
-docker/                 fresh-install testing in Docker (`make docker-shell`)
-scripts/release.sh      tag and publish a release (`make release`)
-website/                docs site (Starlight → Cloudflare Pages; `make docs-serve`)
-```
-
-### Releasing (maintainers)
-
-```bash
-make release VERSION=v3 DRY_RUN=1    # check everything, publish nothing
-make release VERSION=v3              # tag main, push, publish the GitHub release
-```
-
-The release is marked latest and carries `install.sh`, so the quick-install URL serves it right away. Needs an authenticated [`gh`](https://cli.github.com) and a clean, up-to-date `main`.
+If you discover a security vulnerability within CloudKit, please send an e-mail to Esmail Shabayek via [esmail.shabayek@gmail.com](mailto:esmail.shabayek@gmail.com). All security vulnerabilities will be promptly addressed.
 
 ## License
 
-Released under the [MIT License](LICENSE).
+CloudKit is open-sourced software licensed under the [MIT license](LICENSE).
