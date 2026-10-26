@@ -33,14 +33,14 @@ Works in **bash** and **zsh** on **macOS** and **Linux**.
 ### Quick install
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/shabayekdes/cloudkit-cli/main/install.sh | bash
+curl -fsSL https://github.com/shabayekdes/cloudkit-cli/releases/latest/download/install.sh | bash
 ```
 
 The installer:
 
 1. Asks which clouds you use — AWS, Google Cloud, or both
 2. Installs missing dependencies after one confirmation, using `brew` (macOS) or `apt` / `dnf` / `yum` / `pacman` (Linux)
-3. Downloads CloudKit to `~/.cloudkit` (or updates it if it is already there)
+3. Downloads the **latest release** of CloudKit to `~/.cloudkit` (or switches an existing install to it)
 4. Adds a `source …/main.sh` block to `~/.zshrc` / `~/.bashrc` (re-running never duplicates it)
 5. Offers to set up your AWS / gcloud credentials
 6. Offers to restart your shell so `ck` works right away
@@ -57,6 +57,8 @@ Pass options after `bash -s --`, for example `curl … | bash -s -- --gcp --yes`
 | `--dir <path>` | Install directory (default: `$CLOUDKIT_HOME` or `~/.cloudkit`) |
 | `--uninstall` | Remove CloudKit (never touches `~/.aws` or gcloud configuration) |
 
+To upgrade, re-run the same command: it moves `~/.cloudkit` to the newest release. Check what you have with `ck version`.
+
 ### From a clone
 
 ```bash
@@ -65,7 +67,7 @@ cd cloudkit-cli
 ./install.sh
 ```
 
-Running `./install.sh` from a clone uses that clone in place, so `git pull` updates CloudKit.
+Running `./install.sh` from a clone uses that clone in place, so `git pull` or `git checkout <tag>` controls the version.
 
 ### Dependencies
 
@@ -199,6 +201,7 @@ ck mig recreate web-mig --region us-central1    # rolling replace
 ```bash
 ck status        # active AWS and gcloud sessions in this terminal (no network calls)
 ck doctor        # dependency and configuration check
+ck version       # installed CloudKit version
 ```
 
 ### Configuration

@@ -121,4 +121,41 @@ printf 'Bad_Name\n' \
 echo "ck setup gcloud: OK"
 
 echo ""
+echo "=== Test 8: install.sh installs the latest release ==="
+# Local repo with tags v1 and v2; no GitHub API (falls back to git tags)
+src="$tmp/src"
+git init --quiet "$src"
+git -C "$src" symbolic-ref HEAD refs/heads/main
+cp -R main.sh ck.sh session.sh services "$src/"
+commit() { git -C "$src" -c user.name=t -c user.email=t@t commit --quiet "$@"; }
+git -C "$src" add -A
+commit -m one
+git -C "$src" tag v1
+echo "# two" >> "$src/main.sh"
+commit -am two
+git -C "$src" tag v2
+echo "# three" >> "$src/main.sh"
+commit -am three
+export CLOUDKIT_REPO_URL="file://$src" CLOUDKIT_RELEASES_API=""
+ck_home="$HOME/.cloudkit"
+run_installer() { bash -s -- --no-deps --no-rc --yes < "$REPO_ROOT/install.sh" > /dev/null 2>&1; }
+
+run_installer || fail "install failed"
+[ "$(cat "$ck_home/.cloudkit-version")" = v2 ] || fail "should install the latest tag v2"
+grep -q '# three' "$ck_home/main.sh" && fail "installed main instead of v2"
+[ "$( ( CLOUDKIT_DIR="$ck_home"; source "$REPO_ROOT/ck.sh"; _ck_version ) )" = v2 ] || fail "ck version wrong"
+
+git -C "$src" tag v3
+run_installer || fail "re-install failed"
+[ "$(cat "$ck_home/.cloudkit-version")" = v3 ] || fail "re-running should upgrade to v3"
+grep -q '# three' "$ck_home/main.sh" || fail "v3 not checked out"
+
+git -C "$src" tag -d v1 v2 v3 > /dev/null
+rm -rf "$ck_home"
+run_installer || fail "install without releases failed"
+[ "$(cat "$ck_home/.cloudkit-version")" = main ] || fail "should fall back to main without releases"
+unset CLOUDKIT_REPO_URL CLOUDKIT_RELEASES_API
+echo "install.sh latest release: OK"
+
+echo ""
 echo "All install/setup tests passed."

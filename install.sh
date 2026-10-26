@@ -2,7 +2,7 @@
 # CloudKit installer: fetches CloudKit, installs its dependencies, and adds
 # `source .../main.sh` to your shell rc file.
 #
-#   curl -fsSL https://raw.githubusercontent.com/shabayekdes/cloudkit-cli/main/install.sh | bash
+#   curl -fsSL https://github.com/shabayekdes/cloudkit-cli/releases/latest/download/install.sh | bash
 #   curl -fsSL .../install.sh | bash -s -- --gcp --yes
 #   ./install.sh [options]          # from a clone: uses the clone in place
 #
@@ -11,10 +11,12 @@
 set -euo pipefail
 
 CLOUDKIT_REPO_URL="${CLOUDKIT_REPO_URL:-https://github.com/shabayekdes/cloudkit-cli.git}"
-CLOUDKIT_TARBALL_URL="${CLOUDKIT_TARBALL_URL:-https://github.com/shabayekdes/cloudkit-cli/archive/refs/heads/main.tar.gz}"
+CLOUDKIT_ARCHIVE_URL="${CLOUDKIT_ARCHIVE_URL:-https://github.com/shabayekdes/cloudkit-cli/archive}"
+CLOUDKIT_RELEASES_API="${CLOUDKIT_RELEASES_API-https://api.github.com/repos/shabayekdes/cloudkit-cli/releases/latest}"
 RC_BEGIN="# >>> cloudkit >>>"
 RC_END="# <<< cloudkit <<<"
 MANAGED_MARKER=".cloudkit-managed"
+VERSION_FILE=".cloudkit-version"
 
 RED=$'\033[0;31m'
 GREEN=$'\033[0;32m'
@@ -304,29 +306,67 @@ install_deps() {
 
 # --- CloudKit itself -------------------------------------------------------
 
+# Print the newest release tag: the GitHub "latest release", or else the
+# highest version tag in the repository.
+latest_version() {
+  local tag=""
+  if [ -n "$CLOUDKIT_RELEASES_API" ]; then
+    tag=$(curl -fsSL "$CLOUDKIT_RELEASES_API" 2> /dev/null \
+      | sed -n 's/^ *"tag_name": *"\([^"]*\)".*/\1/p' | head -n 1) || tag=""
+  fi
+  if [ -z "$tag" ] && has git; then
+    tag=$(git ls-remote --tags --refs "$CLOUDKIT_REPO_URL" 'v*' 2> /dev/null \
+      | sed 's|.*refs/tags/||' | sort -V 2> /dev/null | tail -n 1) || tag=""
+  fi
+  echo "$tag"
+}
+
+# Print the ref to install: the newest release, or main when there is none.
+install_version() {
+  local version
+  version="$(latest_version)"
+  if [ -z "$version" ]; then
+    warn "Could not find a release; installing the main branch" >&2
+    version=main
+  fi
+  echo "$version"
+}
+
 fetch_cloudkit() {
-  local dir="$1"
+  local dir="$1" version="$2"
+
   if [ -d "$dir/.git" ] && has git; then
-    info "Updating CloudKit in $dir"
-    git -C "$dir" pull --ff-only --quiet || warn "Could not update $dir (local changes?); using it as is"
+    info "Switching CloudKit in $dir to $version"
+    if git -C "$dir" fetch --quiet --depth 1 --force "$CLOUDKIT_REPO_URL" "$version" \
+      && git -C "$dir" -c advice.detachedHead=false checkout --quiet --detach FETCH_HEAD; then
+      echo "$version" > "$dir/$VERSION_FILE"
+    else
+      warn "Could not update $dir (local changes?); using it as is"
+    fi
     return
   fi
-  if [ -f "$dir/main.sh" ]; then
-    info "Using existing CloudKit in $dir"
+  if [ -f "$dir/main.sh" ] && [ ! -f "$dir/$MANAGED_MARKER" ]; then
+    warn "Using existing CloudKit in $dir (not managed by the installer, version unchanged)"
     return
   fi
-  if [ -e "$dir" ] && [ -n "$(ls -A "$dir" 2> /dev/null)" ]; then
+  if [ -f "$dir/$MANAGED_MARKER" ]; then
+    # Downloaded archive from an earlier install: replace it
+    rm -rf "$dir"
+  elif [ -e "$dir" ] && [ -n "$(ls -A "$dir" 2> /dev/null)" ]; then
     die "$dir exists and is not a CloudKit install; pick another with --dir"
   fi
 
-  info "Downloading CloudKit into $dir"
+  info "Downloading CloudKit $version into $dir"
   if has git; then
-    git clone --quiet --depth 1 "$CLOUDKIT_REPO_URL" "$dir"
+    git -c advice.detachedHead=false clone --quiet --depth 1 --branch "$version" "$CLOUDKIT_REPO_URL" "$dir"
   else
+    local ref="refs/tags/$version"
+    [ "$version" = main ] && ref="refs/heads/main"
     mkdir -p "$dir"
-    curl -fsSL "$CLOUDKIT_TARBALL_URL" | tar -xz -C "$dir" --strip-components 1
+    curl -fsSL "$CLOUDKIT_ARCHIVE_URL/$ref.tar.gz" | tar -xz -C "$dir" --strip-components 1
   fi
   touch "$dir/$MANAGED_MARKER"
+  echo "$version" > "$dir/$VERSION_FILE"
 }
 
 # --- shell rc --------------------------------------------------------------
@@ -501,7 +541,7 @@ main() {
     install_deps
   fi
 
-  [ "$dir" = "${self_dir:-}" ] || fetch_cloudkit "$dir"
+  [ "$dir" = "${self_dir:-}" ] || fetch_cloudkit "$dir" "$(install_version)"
   [ -f "$dir/main.sh" ] || die "CloudKit not found in $dir"
 
   if [ "$DO_RC" = true ]; then
@@ -517,7 +557,9 @@ main() {
     err "Not installed:$FAILED"
     printf "  Run %sck doctor%s for details.\n" "${BOLD}" "${NC}"
   fi
-  printf "%sCloudKit is installed in %s.%s\n" "${GREEN}" "$dir" "${NC}"
+  local installed=""
+  [ -f "$dir/$VERSION_FILE" ] && installed=" $(cat "$dir/$VERSION_FILE")"
+  printf "%sCloudKit%s is installed in %s.%s\n" "${GREEN}" "$installed" "$dir" "${NC}"
   printf "  ck doctor     check dependencies and configuration\n"
   printf "  ck setup      configure AWS / gcloud credentials\n"
   printf "  ck help       list commands\n\n"

@@ -25,6 +25,7 @@ Sessions:
 Setup:
   setup [aws|gcloud]      Guided AWS profile / gcloud configuration setup
   doctor                  Check dependencies and configuration
+  version                 Show the installed CloudKit version
 
 Services:
   ec2 <command>           EC2 instances: ls, session, run, stop, port-forward, upload
@@ -82,6 +83,18 @@ _ck_gcloud_active_config() {
   account=$(awk -F' *= *' '/^\[/ { section = $0 } section == "[core]" && $1 == "account" { print $2 }' "$file")
   project=$(awk -F' *= *' '/^\[/ { section = $0 } section == "[core]" && $1 == "project" { print $2 }' "$file")
   printf "%s|%s|%s\n" "$name" "$account" "$project"
+}
+
+# Print the installed CloudKit version: the tag the installer checked out,
+# else what git says about the clone.
+_ck_version() {
+  local dir="${CLOUDKIT_DIR:-}" version=""
+  if [ -f "$dir/.cloudkit-version" ]; then
+    version=$(cat "$dir/.cloudkit-version")
+  elif command -v git > /dev/null 2>&1 && [ -d "$dir/.git" ]; then
+    version=$(git -C "$dir" describe --tags --always 2> /dev/null)
+  fi
+  echo "${version:-unknown}"
 }
 
 # Show the active sessions from the env vars set by `ck aws login` and
@@ -181,6 +194,10 @@ ck() {
 
     doctor)
       _ck_doctor
+      ;;
+
+    version|--version|-v)
+      echo "CloudKit $(_ck_version)"
       ;;
 
     help|-h|--help)

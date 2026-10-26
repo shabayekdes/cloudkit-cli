@@ -270,6 +270,7 @@ _ck_doctor() {
   local installer="${CLOUDKIT_DIR:-.}/install.sh"
 
   printf "\n%s━━━ CloudKit Doctor ━━━%s\n" "${BOLD_GREEN:-}" "${NC:-}"
+  printf "%sCloudKit %s (%s)%s\n" "${GRAY:-}" "$(_ck_version)" "${CLOUDKIT_DIR:-?}" "${NC:-}"
 
   printf "\n%sCommon%s\n" "${BOLD:-}" "${NC:-}"
   _ck_doctor_tool jq fail "required" jq --version
