@@ -19,5 +19,7 @@ source "$CLOUDKIT_DIR/services/ecs.sh"
 source "$CLOUDKIT_DIR/services/gce.sh"
 # shellcheck source=services/gce_ig.sh disable=SC1090
 source "$CLOUDKIT_DIR/services/gce_ig.sh"
+# shellcheck source=services/setup.sh disable=SC1090
+source "$CLOUDKIT_DIR/services/setup.sh"
 # shellcheck source=ck.sh disable=SC1090
 source "$CLOUDKIT_DIR/ck.sh"

@@ -6,6 +6,8 @@ _ck_help() {
     aws) _ck_aws_usage ;;
     gcloud) _ck_gcloud_usage ;;
     ec2|ecs|gce|mig) "_ck_$1" ;;
+    setup) _ck_setup_usage ;;
+    doctor) echo "Usage: ck doctor    Check dependencies and AWS/gcloud configuration" ;;
     "")
       cat << 'EOF'
 Usage: ck <command> [options]
@@ -19,6 +21,10 @@ Sessions:
   gcloud switch           Switch to another gcloud configuration
   gcloud logout           Clear the gcloud session from this shell
   status                  Show the active AWS and gcloud sessions
+
+Setup:
+  setup [aws|gcloud]      Guided AWS profile / gcloud configuration setup
+  doctor                  Check dependencies and configuration
 
 Services:
   ec2 <command>           EC2 instances: ls, session, run, stop, port-forward, upload
@@ -167,6 +173,14 @@ ck() {
 
     status)
       _ck_status
+      ;;
+
+    setup)
+      _ck_setup "$@"
+      ;;
+
+    doctor)
+      _ck_doctor
       ;;
 
     help|-h|--help)
