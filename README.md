@@ -1,18 +1,16 @@
 <p align="center">
-  <img src="assets/logo.svg" alt="CloudKit CLI" width="128" height="128">
+  <img src="assets/logo.svg" alt="CloudKit -- CLI toolkit for AWS & Google Cloud (GCP)" width="580">
 </p>
 
-<h1 align="center">CloudKit CLI</h1>
-
 <p align="center">
-  <b>One <code>ck</code> command for AWS and GCloud.</b><br>
+  <b>One <code>ck</code> command for AWS and Google Cloud (GCP).</b><br>
   Interactive sessions, service wrappers, and a color-coded prompt -- across both clouds.
 </p>
 
 <p align="center">
   <a href="https://github.com/shabayekdes/cloudkit-cli/actions/workflows/ci.yml"><img src="https://github.com/shabayekdes/cloudkit-cli/actions/workflows/ci.yml/badge.svg" alt="CI"></a>
   <img src="https://img.shields.io/badge/shell-bash%20%7C%20zsh-4EAA25" alt="Shell: bash | zsh">
-  <img src="https://img.shields.io/badge/clouds-AWS%20%7C%20GCloud-FF8A00" alt="Clouds: AWS | GCloud">
+  <img src="https://img.shields.io/badge/clouds-AWS%20%7C%20Google%20Cloud-FF8A00" alt="Clouds: AWS | Google Cloud">
 </p>
 
 ## User Guide
@@ -353,7 +351,7 @@ ck gcloud logout       # clear session
 
 ### 8) Repository Structure
 
-- `assets/logo.svg` -- project logo
+- `assets/` -- logo (`logo.svg`, `logo-icon.svg`)
 - `main.sh` -- entrypoint; exports `CLOUDKIT_DIR`, loads session and service helpers and `ck`
 - `ck.sh` -- the `ck` command: dispatches to session and service helpers, `ck status`, `ck help`
 - `session.sh` -- session management for both AWS and GCloud: profile/config picker, SSO/auth login, session table, prompt updates
