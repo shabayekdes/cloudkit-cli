@@ -386,10 +386,11 @@ install_rc() {
   info "Updating shell rc files"
   for file in $(rc_files); do
     rc_remove_block "$file"
-    {
-      [ -s "$file" ] && [ -n "$(tail -c 1 "$file")" ] && echo
-      rc_block "$dir"
-    } >> "$file"
+    # Start on a new line if the file doesn't end with one
+    if [ -s "$file" ] && [ -n "$(tail -c 1 "$file")" ]; then
+      echo >> "$file"
+    fi
+    rc_block "$dir" >> "$file"
     ok "$file"
   done
 }
