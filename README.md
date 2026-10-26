@@ -257,7 +257,17 @@ services/setup.sh       ck setup, ck doctor
 services/_picker.sh     shared interactive instance picker
 test/                   smoke, auth, and install tests (`make test`)
 docker/                 fresh-install testing in Docker (`make docker-shell`)
+scripts/release.sh      tag and publish a release (`make release`)
 ```
+
+### Releasing (maintainers)
+
+```bash
+make release VERSION=v3 DRY_RUN=1    # check everything, publish nothing
+make release VERSION=v3              # tag main, push, publish the GitHub release
+```
+
+The release is marked latest and carries `install.sh`, so the quick-install URL serves it right away. Needs an authenticated [`gh`](https://cli.github.com) and a clean, up-to-date `main`.
 
 ## License
 
