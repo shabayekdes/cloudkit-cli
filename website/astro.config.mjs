@@ -5,7 +5,7 @@ import starlightLinksValidator from 'starlight-links-validator';
 
 // https://astro.build/config
 export default defineConfig({
-	site: 'https://cloudkit.pages.dev',
+	site: 'https://cloudkit-cli.pages.dev',
 	integrations: [
 		starlight({
 			title: 'CloudKit',

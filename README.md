@@ -9,7 +9,7 @@
   <img src="https://img.shields.io/badge/clouds-AWS%20%7C%20Google%20Cloud-FF8A00" alt="Clouds: AWS | Google Cloud">
   <img src="https://img.shields.io/badge/platform-macOS%20%7C%20Linux-lightgrey" alt="Platform: macOS | Linux">
   <a href="LICENSE"><img src="https://img.shields.io/badge/license-MIT-blue" alt="License: MIT"></a>
-  <a href="https://cloudkit.pages.dev"><img src="https://img.shields.io/badge/docs-cloudkit.pages.dev-F38020" alt="Docs"></a>
+  <a href="https://cloudkit-cli.pages.dev"><img src="https://img.shields.io/badge/docs-cloudkit--cli.pages.dev-F38020" alt="Docs"></a>
 </p>
 
 <p align="center">
@@ -107,7 +107,7 @@ Removes the rc block and `~/.cloudkit`. Your `~/.aws` and gcloud configuration a
 
 ## Usage
 
-📖 **Full documentation: [cloudkit.pages.dev](https://cloudkit.pages.dev)**: every command, its options, configuration and troubleshooting.
+📖 **Full documentation: [cloudkit-cli.pages.dev](https://cloudkit-cli.pages.dev)**: every command, its options, configuration and troubleshooting.
 
 ```bash
 ck aws login                 # pick an AWS profile, SSO login if needed, show the session table
