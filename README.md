@@ -38,7 +38,7 @@ curl -fsSL https://github.com/shabayekdes/cloudkit-cli/releases/latest/download/
 
 The installer:
 
-1. Asks which clouds you use — AWS, Google Cloud, or both
+1. Asks which clouds you use — AWS, Google Cloud, both, or neither (CloudKit and its common tools only)
 2. Installs missing dependencies after one confirmation, using `brew` (macOS) or `apt` / `dnf` / `yum` / `pacman` (Linux)
 3. Downloads the **latest release** of CloudKit to `~/.cloudkit` (or switches an existing install to it)
 4. Adds a `source …/main.sh` block to `~/.zshrc` / `~/.bashrc` (re-running never duplicates it)
@@ -50,6 +50,7 @@ Pass options after `bash -s --`, for example `curl … | bash -s -- --gcp --yes`
 | Option | Effect |
 |---|---|
 | `--aws` / `--gcp` / `--all` | Install dependencies for one cloud or both (default: ask) |
+| `--core` | Install only the common tools (`curl`, `jq`, `python3`), without the AWS CLI or gcloud |
 | `--yes` | Don't ask for confirmation |
 | `--no-deps` | Skip dependency installation |
 | `--no-rc` | Don't edit shell rc files |
@@ -238,7 +239,7 @@ Contributions are welcome! Please follow these rules so changes stay easy to rev
    ```bash
    make ci          # shellcheck + all tests
    ```
-   CI runs the same on every pull request.
+   CI runs the same on every pull request. If you change `install.sh`, also run `make docker-shell SOURCE=local` to try a fresh install of your changes in Docker (see [docker/README.md](docker/README.md)).
 6. **Add tests** in `test/` for new behaviour. Tests must not need real cloud credentials or network access — stub `aws` / `gcloud` on `PATH` (see `test/test_install.sh`).
 7. **Keep the docs in sync** — update `ck help` output and this README when you add or change a command.
 8. **Never commit secrets** — no account IDs, keys, tokens or real hostnames in code, tests or examples.
@@ -255,6 +256,7 @@ services/gce.sh         ck gce        services/gce_ig.sh    ck mig
 services/setup.sh       ck setup, ck doctor
 services/_picker.sh     shared interactive instance picker
 test/                   smoke, auth, and install tests (`make test`)
+docker/                 fresh-install testing in Docker (`make docker-shell`)
 ```
 
 ## License

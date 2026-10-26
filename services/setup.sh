@@ -286,10 +286,10 @@ _ck_doctor() {
     use_gcp=true
   fi
   local level
+  # CloudKit-only installs (install.sh --core) are valid: just point the way
   if [ "$use_aws" = false ] && [ "$use_gcp" = false ]; then
     printf "\n%sNeither the AWS CLI nor gcloud is installed. Install one with: %s --aws | --gcp%s\n" \
-      "${RED:-}" "$installer" "${NC:-}"
-    _CK_DOCTOR_FAILED=1
+      "${YELLOW:-}" "$installer" "${NC:-}"
   fi
 
   printf "\n%sAWS%s\n" "${BOLD:-}" "${NC:-}"

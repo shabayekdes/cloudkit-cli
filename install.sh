@@ -40,6 +40,8 @@ Usage: install.sh [options]
   --gcp          Install Google Cloud dependencies only (plus common ones)
   --all          Install AWS and Google Cloud dependencies
                  (default: ask; "all" when there is no terminal)
+  --core         Install only the common tools (curl, jq, python3), without
+                 the AWS CLI or gcloud
   --yes, -y      Don't ask for confirmation
   --no-deps      Skip dependency installation
   --no-rc        Don't edit shell rc files
@@ -173,9 +175,10 @@ cleanup() {
 }
 trap cleanup EXIT
 
-tmp_dir() {
+# Create TMP_DIR once. Call it directly, not in $(...): a subshell's
+# assignment would be lost and the EXIT trap would never clean it up.
+make_tmp_dir() {
   [ -n "$TMP_DIR" ] || TMP_DIR="$(mktemp -d)"
-  echo "$TMP_DIR"
 }
 
 install_aws() {
@@ -188,7 +191,8 @@ install_aws() {
   fi
   [ "$OS" = Linux ] || return 1
   local dir arch
-  dir="$(tmp_dir)/awscli"
+  make_tmp_dir
+  dir="$TMP_DIR/awscli"
   case "$ARCH" in
     x86_64 | amd64) arch=x86_64 ;;
     aarch64 | arm64) arch=aarch64 ;;
@@ -212,7 +216,8 @@ install_session_manager_plugin() {
   esac
   case "$PKG" in
     apt)
-      file="$(tmp_dir)/session-manager-plugin.deb"
+      make_tmp_dir
+      file="$TMP_DIR/session-manager-plugin.deb"
       if [ "$arm" = true ]; then
         curl -fsSL "$base/ubuntu_arm64/session-manager-plugin.deb" -o "$file"
       else
@@ -493,6 +498,7 @@ main() {
       --aws) WANT_AWS=true; WANT_GCP="${WANT_GCP:-false}" ;;
       --gcp | --gcloud) WANT_GCP=true; WANT_AWS="${WANT_AWS:-false}" ;;
       --all) WANT_AWS=true; WANT_GCP=true ;;
+      --core) WANT_AWS=false; WANT_GCP=false ;;
       -y | --yes) ASSUME_YES=true ;;
       --no-deps) DO_DEPS=false ;;
       --no-rc) DO_RC=false ;;
@@ -528,11 +534,12 @@ main() {
     WANT_AWS=true WANT_GCP=true
     if [ "$ASSUME_YES" = false ] && has_tty; then
       local choice
-      printf "Which clouds do you use?\n  1) AWS and Google Cloud\n  2) AWS only\n  3) Google Cloud only\nChoice [1]: " > /dev/tty
+      printf "Which clouds do you use?\n  1) AWS and Google Cloud\n  2) AWS only\n  3) Google Cloud only\n  4) CloudKit only (common tools, no AWS CLI or gcloud)\nChoice [1]: " > /dev/tty
       read -r choice < /dev/tty || choice=""
       case "${choice:-1}" in
         2) WANT_GCP=false ;;
         3) WANT_AWS=false ;;
+        4) WANT_AWS=false WANT_GCP=false ;;
       esac
     fi
   fi
