@@ -4,18 +4,19 @@
 SHELL := /bin/bash
 SCRIPTS := main.sh session.sh services/_picker.sh services/ec2.sh services/ecs.sh services/gce.sh services/gce_ig.sh services/setup.sh ck.sh install.sh docker/run.sh docker/test-install.sh scripts/release.sh
 
-.PHONY: shellcheck test ci release help docker-shell docker-fresh
+.PHONY: shellcheck test ci release help docker-shell docker-fresh docs-serve docs-build
 
 help:
-	@echo "Targets: shellcheck, test, ci, release, docker-shell, docker-fresh"
+	@echo "Targets: shellcheck, test, ci, release, docker-shell, docker-fresh, docs-serve, docs-build"
 
 shellcheck: ## Run Shellcheck on Bash scripts (excludes Expect)
 	shellcheck -x $(SCRIPTS)
 
-test: ## Run all tests (smoke + auth + install; no AWS credentials required)
+test: ## Run all tests (smoke + auth + install + docs; no AWS credentials required)
 	@bash "$(CURDIR)/test/run.sh"
 	@bash "$(CURDIR)/test/test_auth.sh"
 	@bash "$(CURDIR)/test/test_install.sh"
+	@bash "$(CURDIR)/test/test_docs.sh"
 
 ci: shellcheck test ## Run all CI checks
 
@@ -33,3 +34,10 @@ docker-shell: ## Shell on a fresh machine with CloudKit installed (ck ready to u
 
 docker-fresh: ## Empty fresh machine to walk through the installer by hand
 	@bash docker/run.sh fresh
+
+# Docs site (Starlight, in website/). Needs Node.js.
+docs-serve: ## Live preview of the docs site at http://localhost:4321
+	@cd website && npm install --no-audit --no-fund && npm run dev
+
+docs-build: ## Build the docs site into website/dist (fails on broken links)
+	@cd website && npm ci --no-audit --no-fund && npm run build

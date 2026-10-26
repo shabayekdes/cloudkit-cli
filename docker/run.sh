@@ -37,7 +37,8 @@ version_label() {
   echo "$label-local"
 }
 
-# Package the working tree (tracked + untracked, .gitignore respected) as a
+# Package the working tree (tracked + untracked, .gitignore respected, top-level
+# export-ignore paths from .gitattributes left out like GitHub's tarballs) as a
 # release the installer downloads with curl, the same way it fetches a GitHub
 # release on a machine without git:
 #   $1/release.json                            "latest release" API answer
@@ -49,7 +50,11 @@ local_release() {
   stage="$out/stage/cloudkit"
   mkdir -p "$stage" "$out/archive/refs/tags"
   git -C "$REPO_ROOT" ls-files -z --cached --others --exclude-standard \
-    | (cd "$REPO_ROOT" && while IFS= read -r -d '' f; do [ -e "$f" ] && printf '%s\0' "$f"; done) \
+    | (cd "$REPO_ROOT" && while IFS= read -r -d '' f; do
+        [ -e "$f" ] || continue
+        [ "$(git check-attr export-ignore -- "${f%%/*}")" = "${f%%/*}: export-ignore: set" ] && continue
+        printf '%s\0' "$f"
+      done) \
     | (cd "$REPO_ROOT" && xargs -0 tar -cf -) \
     | tar -xf - -C "$stage"
   tar -czf "$out/archive/refs/tags/$version.tar.gz" -C "$out/stage" cloudkit

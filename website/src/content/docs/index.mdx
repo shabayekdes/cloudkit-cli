@@ -1,0 +1,47 @@
+---
+title: CloudKit
+description: One ck command for AWS and Google Cloud. Pick a profile, log in, and jump into your instances.
+template: splash
+hero:
+  tagline: One <code>ck</code> command for AWS and Google Cloud. Pick a profile, log in, and jump into your instances without remembering a single long CLI flag.
+  image:
+    file: ../../assets/logo-icon.svg
+  actions:
+    - text: Get started
+      link: /getting-started/
+      icon: right-arrow
+    - text: Command reference
+      link: /commands/ec2/
+      variant: minimal
+---
+
+import { Card, CardGrid } from '@astrojs/starlight/components';
+
+## Install
+
+```bash
+curl -fsSL https://github.com/shabayekdes/cloudkit-cli/releases/latest/download/install.sh | bash
+```
+
+Then open a new terminal and run `ck doctor`.
+
+<CardGrid>
+	<Card title="Session management" icon="seti:config">
+		Pick an AWS profile (SSO, access keys, chained roles) or a gcloud configuration from a list,
+		log in if needed, and see account, region, identity and credential expiry in one table.
+	</Card>
+	<Card title="Per-terminal sessions" icon="seti:shell">
+		Each terminal has its own active profile, like `AWS_PROFILE`. Your prompt shows
+		`[profile:region]`, with a red `[PROD]` marker for production.
+	</Card>
+	<Card title="Service shortcuts" icon="rocket">
+		List, start, stop and connect to EC2 and GCE instances, exec into ECS tasks, forward ports
+		through SSM or IAP, and manage instance groups. Leave out the instance to pick from a list.
+	</Card>
+	<Card title="Guided setup" icon="setting">
+		`ck setup` walks you through creating AWS profiles and gcloud configurations; `ck doctor`
+		checks that everything is installed.
+	</Card>
+</CardGrid>
+
+Works in **bash** and **zsh** on **macOS** and **Linux**.
