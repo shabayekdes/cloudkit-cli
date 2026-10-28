@@ -112,8 +112,6 @@ Common
 AWS
   ✓ aws                      aws-cli/2.38.5
   ✓ session-manager-plugin   1.2.896.0
-  ✓ expect
-  ✓ nc
   ! profiles                 none — run: ck setup aws
 
 Google Cloud
@@ -136,7 +134,6 @@ All required tools are installed.
 | Common | `jq`, `python3` | Missing | |
 | AWS | `aws` | Missing while `~/.aws/config` exists, or not version 2 | Missing and no AWS config (AWS not in use) |
 | AWS | `session-manager-plugin` | Missing while AWS is in use | Missing and AWS not in use |
-| AWS | `expect`, `nc` | | Missing (only `ck ec2 upload` needs them) |
 | AWS | profiles | | `aws configure list-profiles` returns none |
 | Google Cloud | `gcloud` | Missing while gcloud configurations exist | Missing and gcloud not in use |
 | Google Cloud | configurations, ADC | | None found / no ADC file and no `GOOGLE_APPLICATION_CREDENTIALS` |

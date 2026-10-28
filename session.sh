@@ -695,7 +695,7 @@ check_credentials_expiration() {
 # Usage: create_and_display_table RESPONSE REGION [EXPIRATION]
 create_and_display_table() {
     local response="$1"
-    local current_region="$2"
+    local current_region="${2:-N/A}"
     local expiration="${3:-}"
 
     # Extract values from JSON response (requires jq)
@@ -802,6 +802,20 @@ create_and_display_gcloud_table() {
     printf "\n%s━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━%s\n\n" "${BOLD_GREEN}" "${NC}"
 }
 
+# _aws_export_region REGION
+#
+# Exports AWS_REGION / AWS_DEFAULT_REGION for the selected profile. A profile
+# without a region (empty, or "N/A" in the switch list) unsets them instead, so
+# the AWS CLI uses its own configuration rather than an invalid or stale region.
+_aws_export_region() {
+    if [ -n "$1" ] && [ "$1" != "N/A" ]; then
+        export AWS_REGION="$1"
+        export AWS_DEFAULT_REGION="$1"
+    else
+        unset AWS_REGION AWS_DEFAULT_REGION
+    fi
+}
+
 select_profile() {
     local temp_map="$1"
     local count=0
@@ -827,8 +841,7 @@ select_profile() {
 
         export AWS_PROFILE="$profile"
         export AWS_DEFAULT_PROFILE="$profile"
-        export AWS_REGION="$region"
-        export AWS_DEFAULT_REGION="$region"
+        _aws_export_region "$region"
         export AWS_ACCOUNT_ID="$account"
 
         printf "\n%sAuto-selecting the only available profile: %s%s%s (Account: %s)%s\n" \
@@ -873,8 +886,7 @@ select_profile() {
     # Export the selected profile and region
     export AWS_PROFILE="$profile"
     export AWS_DEFAULT_PROFILE="$profile"
-    export AWS_REGION="$region"
-    export AWS_DEFAULT_REGION="$region"
+    _aws_export_region "$region"
     export AWS_ACCOUNT_ID="$account"
 
     printf "%sSelected profile: %s%s (Account: %s%s)\n" \
@@ -1173,7 +1185,6 @@ _ck_aws_login() {
     # Build the account ID to profile mapping
     local temp_map
     temp_map=$(mktemp)
-    trap 'rm -f "$temp_map"' EXIT
 
     local current_profile=""
     local current_account=""
@@ -1224,8 +1235,10 @@ _ck_aws_login() {
 
     # Ask user to select a profile
     if ! select_profile "$temp_map"; then
+        rm -f "$temp_map"
         return 1
     fi
+    rm -f "$temp_map"
 
     # Check if already authenticated and not expired
     local response expiration
@@ -1373,7 +1386,6 @@ _ck_gcloud_login() {
     # Build configuration list for selection
     local temp_map
     temp_map=$(mktemp)
-    trap 'rm -f "$temp_map"' EXIT
 
     gcloud config configurations list --format=json 2>/dev/null | jq -r '.[] |
       (.name) as $name |
@@ -1384,8 +1396,10 @@ _ck_gcloud_login() {
       "\($name):\($active):\($account):\($project):\($region)"' > "$temp_map"
 
     if ! select_gcloud_profile "$temp_map"; then
+        rm -f "$temp_map"
         return 1
     fi
+    rm -f "$temp_map"
 
     local active_account
     local active_project

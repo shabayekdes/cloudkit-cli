@@ -1,7 +1,4 @@
 # shellcheck shell=bash
-SERVICES_DIR=$(dirname "$0")
-export SERVICES_DIR
-
 # Parse flags shared by `ck gce` subcommands. Flags may appear anywhere; everything
 # after a bare `--` is treated as positional. Populates the caller's locals
 # (zone, project, tunnel_iap, disable_iap, tunnel_only, recurse, forwards,

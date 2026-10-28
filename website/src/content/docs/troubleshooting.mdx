@@ -98,9 +98,9 @@ aws configure get sso_session --profile dev-admin
 
 ### Wrong or invalid region
 
-**Symptoms:** `You must specify a region`, `Provided region_name 'N/A' doesn't match a supported format`, or commands list nothing although resources exist.
+**Symptoms:** `You must specify a region`, or commands list nothing although resources exist.
 
-**Cause:** The profile has no `region`, or the resources are in another region.
+**Cause:** The profile has no `region` (CloudKit then leaves `AWS_REGION` unset), or the resources are in another region.
 
 **Fix:** Add `region = <region>` to the profile and log in again, or run one command with `AWS_REGION=<region> ck …`. See [Accounts, regions and projects](/concepts/targeting/).
 
@@ -268,11 +268,8 @@ On Google Cloud, test from the VM with `ck gce ssh my-vm -- nc -vz 10.20.0.5 330
 
 | Symptom | Cause | Fix |
 |---|---|---|
-| `ck ec2 upload` in bash: `./_ec2_upload.sh: No such file or directory` | Known [bash path issue](/reference/limitations/#ec2-upload) | Run it from zsh, or `expect ~/.cloudkit/services/_ec2_upload.sh …` |
-| Upload hangs at `Step 1` | The SSM shell prompt does not start with `sh-` | `Ctrl+C`; check the Session Manager shell profile |
-| `nc: command not found` on the instance | `nc` missing remotely | Install `nc` on the instance |
-| Remote `Permission denied` | `ssm-user` cannot write to the path | Upload to `/tmp` |
-| Other SSM tunnels close after an upload | `ck ec2 upload` runs `pkill -f "aws ssm"` | Expected; reopen them |
+| `ck gce scp`: `scp: … Permission denied` | Your SSH user cannot write to the destination | Copy to `/tmp`, then move with `sudo` |
+| `AccessDenied` from `aws s3 cp` (EC2 transfers) | Your identity or the instance role cannot access the bucket | Grant `s3:PutObject` / `s3:GetObject` on the bucket |
 | `ck gce scp`: `Error: one of source/destination must be a remote path` | No argument looks like `instance:path` | Write the remote side as `my-vm:/path`; prefix local paths containing `:` with `./` |
 
 ## Shell

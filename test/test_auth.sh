@@ -594,6 +594,28 @@ source '$SESSION_SH' 2>/dev/null
 _ck_aws_switch > /dev/null
 "
 
+
+# Profiles without a region leave AWS_REGION unset instead of "N/A" or ""
+region_map=$(mktemp)
+echo "(keys):no-region:N/A" > "$region_map"
+assert_eq "select_profile unsets AWS_REGION for a profile without a region" "REGION=UNSET" \
+    "$(bash -c "source '$SESSION_SH' > /dev/null 2>&1; AWS_REGION=stale; select_profile '$region_map' > /dev/null; echo REGION=\${AWS_REGION:-UNSET}")"
+echo "(keys):with-region:eu-west-1" > "$region_map"
+assert_eq "select_profile exports the profile's region" "REGION=eu-west-1" \
+    "$(bash -c "source '$SESSION_SH' > /dev/null 2>&1; select_profile '$region_map' > /dev/null; echo REGION=\${AWS_DEFAULT_REGION:-UNSET}")"
+rm -f "$region_map"
+
+# ck aws login must not replace the user's EXIT trap (bash traps are shell-wide)
+assert_output_contains "_ck_aws_login keeps the shell's EXIT trap" "echo mine" \
+    "$(bash -c "
+HOME=\$(mktemp -d); mkdir -p \"\$HOME/.aws\"; printf '[profile k]\nregion = x\n' > \"\$HOME/.aws/config\"
+command() { [ \"\$2\" = aws ] || [ \"\$2\" = jq ] || builtin command \"\$@\"; }
+source '$SESSION_SH' > /dev/null 2>&1
+trap 'echo mine' EXIT
+_ck_aws_login > /dev/null 2>&1
+trap -p EXIT
+")"
+
 # ---------------------------------------------------------------------------
 # Security: no credential values logged or printed
 # ---------------------------------------------------------------------------

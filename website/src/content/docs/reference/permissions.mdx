@@ -29,7 +29,6 @@ These are the minimum actions for the calls CloudKit makes. Your organization ma
 | `ck ec2 stop` | `ec2:StopInstances` |
 | `ck ec2 session` | `ec2:DescribeInstances` (picker); `ssm:StartSession` on the instance and on the `SSM-SessionManagerRunShell` document |
 | `ck ec2 port-forward` | `ssm:StartSession` on the instance and on the `AWS-StartPortForwardingSession` (no host) or `AWS-StartPortForwardingSessionToRemoteHost` (with host) document |
-| `ck ec2 upload` | `ssm:StartSession` on the instance, `SSM-SessionManagerRunShell` and `AWS-StartPortForwardingSession` |
 
 For all SSM sessions, also allow `ssm:TerminateSession` (and `ssm:ResumeSession`) on your own sessions so they can be closed and resumed cleanly. If Session Manager is configured to encrypt sessions with KMS, you also need `kms:GenerateDataKey` on that key.
 
@@ -42,7 +41,8 @@ For all SSM sessions, also allow `ssm:TerminateSession` (and `ssm:ResumeSession`
 | `ck ecs clusters` | `ecs:ListClusters` |
 | `ck ecs services` | `ecs:ListServices` |
 | `ck ecs tasks`, `service-tasks` | `ecs:ListTasks`, `ecs:DescribeTasks` |
-| `ck ecs task-info`, `logs` | `ecs:DescribeTasks` |
+| `ck ecs task-info` | `ecs:DescribeTasks` |
+| `ck ecs logs` | `ecs:DescribeTasks`, `ecs:DescribeTaskDefinition`, `logs:GetLogEvents` on the log group |
 | `ck ecs describe` | `ecs:DescribeServices` |
 | `ck ecs exec` | `ecs:ExecuteCommand` on the task (and cluster) |
 | `ck ecs exec-running` | `ecs:ListTasks`, `ecs:ExecuteCommand` |

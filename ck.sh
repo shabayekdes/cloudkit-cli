@@ -28,7 +28,7 @@ Setup:
   version                 Show the installed CloudKit version
 
 Services:
-  ec2 <command>           EC2 instances: ls, session, run, stop, port-forward, upload
+  ec2 <command>           EC2 instances: ls, session, run, stop, port-forward
   ecs <command>           ECS: clusters, services, tasks, exec, logs, stop, describe
   gce <command>           GCE VMs: ls, start, stop, ssh, scp, port-forward
   mig <command>           GCE managed instance groups: list, describe, recreate, restart

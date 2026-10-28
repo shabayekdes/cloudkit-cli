@@ -1,7 +1,4 @@
 # shellcheck shell=bash
-SERVICES_DIR=$(dirname "$0")
-export SERVICES_DIR
-
 # GCE Managed Instance Groups (MIG) helper
 _ck_mig() {
   case "$1" in

@@ -119,5 +119,47 @@ for old in ec2 ecs gce gce-ig aws_session aws_switch aws_logout gcloud_session g
 done
 echo "ck dispatcher: OK"
 
+# Test 7: ck ecs tasks batches describe-tasks; ck ecs logs reads the awslogs stream
+echo ""
+echo "=== Test 7: ck ecs tasks / logs ==="
+ecs_stub=$(mktemp -d)
+cat > "$ecs_stub/aws" << 'STUB'
+#!/usr/bin/env bash
+echo "aws $*" >> "$AWS_CALLS"
+case "$*" in
+  *"list-tasks"*)
+    jq -n '[range(0; 230) | "arn:aws:ecs:eu-west-1:111111111111:task/my-cluster/t\(.)"]' ;;
+  *"describe-tasks"*"tasks[0]"*)
+    echo '{"taskArn":"arn:aws:ecs:eu-west-1:111111111111:task/my-cluster/abc123","taskDefinitionArn":"arn:td/app:7","containers":[{"name":"app"}]}' ;;
+  *"describe-tasks"*)
+    args="$*"; tasks=${args#*--tasks }; tasks=${tasks%% --output*}
+    echo "$tasks" | jq '{tasks: [.[] | {taskArn: ., lastStatus: "RUNNING", desiredStatus: "RUNNING", createdAt: "2026-01-01T00:00:00.000000+00:00", containers: [{name: "app"}]}]}' ;;
+  *"describe-task-definition"*)
+    if [ -n "${NO_AWSLOGS:-}" ]; then echo '[{"name":"app","logConfiguration":{"logDriver":"awsfirelens"}}]'
+    else echo '[{"name":"app","logConfiguration":{"logDriver":"awslogs","options":{"awslogs-group":"/ecs/app","awslogs-stream-prefix":"ecs","awslogs-region":"eu-west-1"}}}]'; fi ;;
+  *"get-log-events"*)
+    echo '{"events":[{"message":"line one"},{"message":"line two"}]}' ;;
+esac
+STUB
+chmod +x "$ecs_stub/aws"
+export AWS_CALLS="$ecs_stub/calls"
+ecs_run() { ( PATH="$ecs_stub:$PATH"; source "$REPO_ROOT/main.sh"; "$@" ) 2>&1; }
+
+: > "$AWS_CALLS"
+out=$(ecs_run ck ecs tasks my-cluster)
+[ "$(grep -c "describe-tasks" "$AWS_CALLS")" -eq 3 ] || fail "ck ecs tasks should call describe-tasks 3 times for 230 tasks"
+[ "$(echo "$out" | grep -c "RUNNING")" -eq 230 ] || fail "ck ecs tasks did not list all 230 tasks"
+
+: > "$AWS_CALLS"
+out=$(ecs_run ck ecs logs my-cluster abc123 --tail 20)
+grep -q "logs get-log-events --region eu-west-1 --log-group-name /ecs/app --log-stream-name ecs/app/abc123 --limit 20" "$AWS_CALLS" \
+  || fail "ck ecs logs did not read the awslogs stream: $(cat "$AWS_CALLS")"
+echo "$out" | grep -q "line two" || fail "ck ecs logs did not print log lines: $out"
+NO_AWSLOGS=1 ecs_run ck ecs logs my-cluster abc123 > /dev/null && fail "ck ecs logs should fail for non-awslogs drivers"
+ecs_run ck ecs logs my-cluster abc123 --tail abc > /dev/null && fail "ck ecs logs should reject a non-numeric --tail"
+rm -rf "$ecs_stub"
+unset AWS_CALLS
+echo "ck ecs tasks / logs: OK"
+
 echo ""
 echo "=== All smoke tests passed ==="

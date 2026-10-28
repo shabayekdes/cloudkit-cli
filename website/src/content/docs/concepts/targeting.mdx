@@ -30,7 +30,7 @@ AWS_PROFILE=staging ck ecs clusters           # another profile, same region var
 The terminal's session is unchanged afterwards. With `AWS_PROFILE=…`, the region still comes from `AWS_REGION` in the environment, not from the other profile; set both if they differ.
 
 <Aside type="caution" title="Profiles without a region">
-If the selected profile has no `region`, `ck aws login` exports an empty `AWS_REGION` and `ck aws switch` exports the literal value `N/A`. AWS commands then fail with a missing or invalid region error. Add `region = …` to the profile, or prefix commands with `AWS_REGION=…`.
+If the selected profile has no `region`, CloudKit unsets `AWS_REGION` and `AWS_DEFAULT_REGION` rather than keeping the previous profile's region. AWS commands then fail with `You must specify a region`. Add `region = …` to the profile, or prefix commands with `AWS_REGION=…`.
 </Aside>
 
 ### Accounts

@@ -103,11 +103,15 @@ Commands you run through ECS Exec execute inside the live container with its cre
 
 ## Logs
 
-`ck ecs logs` does not fetch log lines. For tasks using the `awslogs` log driver, find the log group in the task definition and tail it with the AWS CLI:
+For containers that use the `awslogs` log driver, print a task's most recent log lines:
 
 ```bash
-aws ecs describe-task-definition --task-definition my-service \
-  --query 'taskDefinition.containerDefinitions[].logConfiguration.options'
+ck ecs logs my-cluster 0123456789abcdef0123456789abcdef --tail 100
+```
+
+Add `--container <name>` when the first container is a sidecar. To follow new output live, use the AWS CLI with the log group that `ck ecs logs` prints:
+
+```bash
 aws logs tail /ecs/my-service --follow --since 15m
 ```
 

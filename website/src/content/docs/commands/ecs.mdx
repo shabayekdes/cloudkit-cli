@@ -22,7 +22,7 @@ import CommandFacts from '../../../components/CommandFacts.astro';
 | [`describe`](#ck-ecs-describe) | Summarize a service | Read-only |
 | [`exec`](#ck-ecs-exec) | Run a command in a container | Interactive |
 | [`exec-running`](#ck-ecs-exec-running) | Run a command in the first running task | Interactive |
-| [`logs`](#ck-ecs-logs) | Show a task's first container | Read-only |
+| [`logs`](#ck-ecs-logs) | Show a container's recent log lines | Read-only |
 | [`stop`](#ck-ecs-stop) | Stop a task | Interrupts workloads |
 
 Clusters, services and tasks are identified by **name** or **ID** (the last part of the ARN); full ARNs also work wherever the AWS CLI accepts them. The task ID is shown by `tasks` and `service-tasks`.
@@ -91,9 +91,7 @@ fedcba9876543210fedcba9876543210         RUNNING         RUNNING         app    
 - `ListTasks` already returns only tasks with desired status `RUNNING` by default, so the output is the same with or without `--running`. Tasks that are shutting down or recently stopped are not listed; query them with `aws ecs list-tasks --desired-status STOPPED`.
 - With no tasks, prints `No tasks found in cluster: <cluster>` and returns `0`.
 
-<Aside type="caution">
-`aws ecs describe-tasks` accepts at most 100 tasks per call, and CloudKit sends all of them at once. In clusters with more than 100 matching tasks, the command fails with an AWS validation error. Use [`service-tasks`](#ck-ecs-service-tasks) to narrow the list.
-</Aside>
+- `aws ecs describe-tasks` accepts at most 100 tasks per call, so CloudKit describes large clusters in batches of 100. Expect one extra API call per 100 tasks.
 
 ## ck ecs service-tasks
 
@@ -233,23 +231,56 @@ The task is the **first** one returned by `aws ecs list-tasks`; it is not chosen
 
 ## ck ecs logs
 
-Print a task's ID and first container name.
+Print the most recent log lines of a task's container from CloudWatch Logs. Works for containers that use the `awslogs` log driver.
 
-<CommandFacts effect="read" runs="aws ecs describe-tasks" needs="AWS session, aws, jq; ecs:DescribeTasks" />
+<CommandFacts
+	effect="read"
+	runs={['aws ecs describe-tasks', 'aws ecs describe-task-definition', 'aws logs get-log-events']}
+	needs="AWS session, aws, jq; ecs:DescribeTasks, ecs:DescribeTaskDefinition, logs:GetLogEvents"
+/>
 
 ```text
-ck ecs logs <cluster> <task-id> [--tail N]
+ck ecs logs <cluster> <task-id> [--tail N] [--container <name>]
+```
+
+| Argument | Description |
+|---|---|
+| `cluster` | Required. Cluster name or ARN. |
+| `task-id` | Required. Task ID or ARN. |
+| `--tail N` | Optional. Number of most recent log events, from 1 to 10000. Default: `50`. |
+| `--container <name>` | Optional. Container to read. Default: the task's first container. |
+
+The options can come in any order after the task ID.
+
+```bash
+ck ecs logs my-cluster 0123456789abcdef0123456789abcdef
+ck ecs logs my-cluster 0123456789abcdef0123456789abcdef --tail 200 --container app
 ```
 
 ```text title="Output (illustrative)"
 Task: 0123456789abcdef0123456789abcdef
 Container: app
-Note: Configure CloudWatch logging in your task definition to view logs here
+Log: /ecs/my-service ecs/app/0123456789abcdef0123456789abcdef
+
+[2026-10-21 14:02:11] production.INFO: Queue worker started
+[2026-10-21 14:02:12] production.INFO: Processing job 1842
 ```
 
-<Aside type="caution" title="Does not fetch logs">
-Despite its name, this command does not read any log lines, and `--tail` is accepted but ignored. To read logs of a task that uses the `awslogs` driver, use the AWS CLI directly, for example `aws logs tail <log-group> --follow`. The log group is in the task definition's `logConfiguration`.
-</Aside>
+### How the log stream is found
+
+CloudKit reads the container's `logConfiguration` from the task definition. The `awslogs` driver writes each task to the stream `<awslogs-stream-prefix>/<container>/<task-id>` in `awslogs-group`, in the region given by `awslogs-region`. CloudKit reads that stream and prints each event's message, oldest first.
+
+### Errors
+
+| Message | Cause |
+|---|---|
+| `Error: container '<name>' uses the '<driver>' log driver…` | Not `awslogs` (for example FireLens or no logging). Read logs where that driver sends them. |
+| `Error: no awslogs-stream-prefix…` | Without a prefix the stream name cannot be derived. The message suggests `aws logs tail <group> --follow`. |
+| `Error: container '<name>' is not in task definition …` | Wrong `--container`. |
+| `Error: task not found` | The task ID is wrong or the task stopped long ago. |
+| `ResourceNotFoundException` | The stream does not exist yet (the task has not logged anything) or the group was deleted. |
+
+The command prints one batch of recent events and exits; it does not follow new output. To stream logs live, use `aws logs tail <group> --follow`.
 
 ## ck ecs stop
 

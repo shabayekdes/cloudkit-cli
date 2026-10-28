@@ -48,8 +48,8 @@ Usage: install.sh [options]
   --no-setup     Don't offer credential setup at the end
   --dir <path>   Install directory (default: $CLOUDKIT_HOME or ~/.cloudkit;
                  ignored when run from a clone)
-  --deps <tools> Install only these tools (comma-separated, e.g. expect,nc)
-                 and exit; used by commands that need extra tools
+  --deps <tools> Install only these tools (comma-separated, e.g. jq,python3)
+                 and exit
   --uninstall    Remove the rc block (and the install directory, if this
                  installer created it). Never touches ~/.aws or gcloud config.
   -h, --help     Show this help
@@ -133,10 +133,6 @@ pkg_name() {
   case "$1:$PKG" in
     python3:brew) echo python ;;
     python3:pacman) echo python ;;
-    nc:brew) echo netcat ;;
-    nc:apt) echo netcat-openbsd ;;
-    nc:dnf | nc:yum) echo nmap-ncat ;;
-    nc:pacman) echo openbsd-netcat ;;
     *) echo "$1" ;;
   esac
 }
@@ -155,8 +151,7 @@ has_dep() {
   esac
 }
 
-# Dependencies for the selected scope, in install order. expect and nc are
-# left out: `ck ec2 upload` installs them on first use (--deps expect,nc).
+# Dependencies for the selected scope, in install order.
 wanted_deps() {
   if [ -n "$DEPS_ONLY" ]; then
     echo "$DEPS_ONLY"
@@ -516,7 +511,7 @@ main() {
         shift
         ;;
       --deps)
-        [ -n "${2:-}" ] || die "--deps needs a tool list, e.g. expect,nc"
+        [ -n "${2:-}" ] || die "--deps needs a tool list, e.g. jq,python3"
         DEPS_ONLY="${2//,/ }"
         shift
         ;;

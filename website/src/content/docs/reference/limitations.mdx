@@ -13,37 +13,27 @@ This page lists behavior of the current CloudKit release that may surprise you, 
 - **Operating systems:** macOS and Linux. Windows is not supported directly.
 - **Interactive use:** commands prompt for choices, clear the screen, and change the prompt. They are designed for a person at a terminal. In scripts, call `aws` and `gcloud` directly.
 - **Shell namespace:** CloudKit defines unprefixed helper functions (for example `select_profile`, `clear_terminal`) and variables (`RED`, `GREEN`, `NC` and other colors) in your shell. A function or variable of the same name in your rc file overrides CloudKit's or is overridden by it, depending on which is defined last.
-- **EXIT trap (bash):** `ck aws login` and `ck gcloud login` set an `EXIT` trap to remove a temporary file. In bash this trap belongs to the whole shell, so it replaces any `EXIT` trap you set in your interactive shell. In zsh it is local to the function.
 
 ## Sessions
 
 - `ck aws login` lists only profiles with `sso_account_id`. Use `ck aws switch` for other profiles.
 - Profiles are read from `$HOME/.aws/config` only; `AWS_CONFIG_FILE` is ignored. Profiles that exist only in `~/.aws/credentials` are not listed.
-- A profile without `region` gets `AWS_REGION=""` from `login` and `AWS_REGION=N/A` from `switch`, and AWS commands fail. Add a `region` to every profile.
+- A profile without `region` leaves `AWS_REGION` unset, so AWS commands fail with `You must specify a region`. Add a `region` to every profile.
 - The profile is exported before credentials are validated. After a failed login, the terminal still points at the failed profile until you run `ck aws logout` or log in again.
 - Credentials are checked only when you log in or switch. CloudKit does not refresh or re-check them; `ck status` reads environment variables only.
 
 ## EC2
 
 - `ck ec2` commands have no `--profile` or `--region` flags. Prefix a single command with `AWS_REGION=…` or `AWS_PROFILE=…` instead ([details](/concepts/targeting/#run-one-command-against-another-region-or-profile)).
-- Only `ck ec2 session` has an instance picker; `run`, `stop`, `port-forward` and `upload` need an instance ID.
+- Only `ck ec2 session` has an instance picker; `run`, `stop` and `port-forward` need an instance ID.
 - The `session` picker lists every running instance in the region, including ones that are not SSM-managed.
-
-### EC2 upload
-
-- **bash:** `ck ec2 upload` fails to start its helper script unless the current directory is CloudKit's `services/` directory, because `SERVICES_DIR` is overwritten with a relative path when CloudKit loads in bash. zsh is not affected. Workaround: run `expect ~/.cloudkit/services/_ec2_upload.sh <instance-id> <local-file> [remote-path] [port]`.
-- Ends with `pkill -f "aws ssm"`, which also terminates unrelated SSM sessions and port forwards on your machine.
-- Requires `nc` on the instance, waits without timeout for an SSM shell prompt starting with `sh-`, and defaults to `/home/ec2-user/` as the destination.
-- Uploads one file; no download, no directories.
-- Compares checksums only by printing them. The local checksum uses `md5sum`; without it, the script stops with an error after the transfer.
 
 ## ECS
 
-- `ck ecs logs` does not fetch log lines; `--tail` is ignored. Use `aws logs tail`.
-- `ck ecs tasks` and `service-tasks` send every task to one `describe-tasks` call, which accepts at most 100 tasks.
-- Task tables and `task-info` show the first container of each task only.
+- `ck ecs logs` supports the `awslogs` driver only, needs an `awslogs-stream-prefix`, and prints a snapshot of recent events rather than following new ones. Use `aws logs tail --follow` to stream.
+- Task tables and `task-info` show the first container of each task only. `ck ecs logs` defaults to the first container; pass `--container` for another.
 - `ck ecs exec-running` picks the first task `list-tasks` returns, not a specific or healthy one.
-- `--running`, `--service` and `--tail` are recognized only in the positions shown in the syntax.
+- `--running` and `--service` are recognized only in the positions shown in the syntax.
 
 ## Compute Engine
 

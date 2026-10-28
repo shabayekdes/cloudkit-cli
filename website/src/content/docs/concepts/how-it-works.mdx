@@ -26,7 +26,7 @@ Because `ck` is a function running inside your shell rather than a child process
 
 Loading CloudKit has two side effects even before you run a command:
 
-- It sets `CLOUDKIT_DIR` and `SERVICES_DIR`, plus color variables (`RED`, `GREEN`, `BLUE`, `CYAN`, `GRAY`, `YELLOW`, `BOLD`, `BOLD_GREEN`, `NC`, `PROD_BADGE`) and helper functions such as `select_profile` and `clear_terminal`. If your own rc file defines variables or functions with these names, the one defined last wins. See [Shell start-up conflicts](/troubleshooting/#shell-start-up-or-prompt-conflicts).
+- It sets `CLOUDKIT_DIR`, plus color variables (`RED`, `GREEN`, `BLUE`, `CYAN`, `GRAY`, `YELLOW`, `BOLD`, `BOLD_GREEN`, `NC`, `PROD_BADGE`) and helper functions such as `select_profile` and `clear_terminal`. If your own rc file defines variables or functions with these names, the one defined last wins. See [Shell start-up conflicts](/troubleshooting/#shell-start-up-or-prompt-conflicts).
 - Unless `CLOUDKIT_GCLOUD_GLOBAL` is set or the shell already has `CLOUDSDK_ACTIVE_CONFIG_NAME`, it exports an empty `CLOUDSDK_CORE_ACCOUNT` so the terminal starts with no gcloud account. See [Sessions and credentials](/sessions/#google-cloud-sessions).
 
 ## What each command runs
@@ -42,10 +42,10 @@ CloudKit builds the native command for you and runs it in the foreground, so you
 | `ck ec2 session` | `aws ec2 describe-instances` (picker only), `aws ssm start-session` |
 | `ck ec2 run`, `ck ec2 stop` | `aws ec2 start-instances`, `aws ec2 stop-instances` |
 | `ck ec2 port-forward` | `aws ssm start-session` with the `AWS-StartPortForwardingSession` or `AWS-StartPortForwardingSessionToRemoteHost` document |
-| `ck ec2 upload` | An `expect` script that drives two `aws ssm start-session` sessions and `nc` |
 | `ck ecs clusters`, `services` | `aws ecs list-clusters`, `aws ecs list-services` |
 | `ck ecs tasks`, `service-tasks` | `aws ecs list-tasks`, `aws ecs describe-tasks` |
-| `ck ecs task-info`, `logs` | `aws ecs describe-tasks` |
+| `ck ecs task-info` | `aws ecs describe-tasks` |
+| `ck ecs logs` | `aws ecs describe-tasks`, `aws ecs describe-task-definition`, `aws logs get-log-events` |
 | `ck ecs exec`, `exec-running` | `aws ecs execute-command` (`exec-running` first runs `aws ecs list-tasks`) |
 | `ck ecs stop`, `describe` | `aws ecs stop-task`, `aws ecs describe-services` |
 | `ck gce ls`, `ls-running`, `ls-stopped` | `gcloud compute instances list` |

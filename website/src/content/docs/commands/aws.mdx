@@ -106,7 +106,7 @@ Takes no arguments.
 - Prints the same session table and expiry warning as `login`.
 
 <Aside type="caution">
-A profile without a `region` is exported with `AWS_REGION=N/A`, which AWS commands reject. Give every profile a `region`. See [Accounts, regions and projects](/concepts/targeting/).
+For a profile without a `region`, CloudKit unsets `AWS_REGION` and `AWS_DEFAULT_REGION`, and AWS commands fail with `You must specify a region`. Give every profile a `region`. See [Accounts, regions and projects](/concepts/targeting/).
 </Aside>
 
 **Related:** [`ck aws login`](#ck-aws-login), [Switch between environments](/guides/environments/)

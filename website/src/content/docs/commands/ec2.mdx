@@ -1,6 +1,6 @@
 ---
 title: ck ec2
-description: Reference for ck ec2 commands that list, start and stop EC2 instances, open SSM shells, forward ports and upload files.
+description: Reference for ck ec2 commands that list, start and stop EC2 instances, open SSM shells and forward ports.
 sidebar:
   order: 3
 tableOfContents:
@@ -21,10 +21,9 @@ import CommandFacts from '../../../components/CommandFacts.astro';
 | [`run`](#ck-ec2-run) | Start an instance | Changes resources |
 | [`stop`](#ck-ec2-stop) | Stop an instance | Interrupts workloads |
 | [`port-forward`](#ck-ec2-port-forward) | Forward a local port through SSM | Interactive |
-| [`upload`](#ck-ec2-upload) | Upload a file through SSM | Writes to the instance |
 
 <Aside type="note" title="Systems Manager prerequisites">
-`session`, `port-forward` and `upload` connect through AWS Systems Manager (SSM) Session Manager instead of SSH. The instance needs a running SSM Agent, an instance profile with the `AmazonSSMManagedInstanceCore` policy (or equivalent), and outbound HTTPS to the SSM endpoints. Your machine needs the [Session Manager plugin](https://docs.aws.amazon.com/systems-manager/latest/userguide/session-manager-working-with-install-plugin.html). See [Connect to an EC2 instance](/guides/connect-ec2/#prerequisites) and [Permissions](/reference/permissions/#ec2).
+`session` and `port-forward` connect through AWS Systems Manager (SSM) Session Manager instead of SSH. The instance needs a running SSM Agent, an instance profile with the `AmazonSSMManagedInstanceCore` policy (or equivalent), and outbound HTTPS to the SSM endpoints. Your machine needs the [Session Manager plugin](https://docs.aws.amazon.com/systems-manager/latest/userguide/session-manager-working-with-install-plugin.html). See [Connect to an EC2 instance](/guides/connect-ec2/#prerequisites) and [Permissions](/reference/permissions/#ec2).
 </Aside>
 
 ## ck ec2 ls
@@ -219,51 +218,3 @@ CloudKit prints the mapping, for example `Forwarding localhost:5433 -> mydb.exam
 The listener binds to `localhost` only. If the local port is already in use, the plugin fails to start the listener; pick another `local-port`.
 
 **Related:** [Forward a port and reach a private database](/guides/port-forwarding/), [Port-forwarding problems](/troubleshooting/#port-forward-fails-or-the-local-port-is-busy)
-
-## ck ec2 upload
-
-Upload one file from your machine to an instance through SSM, without SSH or S3.
-
-<CommandFacts
-	effect="change"
-	runs={['expect script: aws ssm start-session (shell + port forward), nc']}
-	needs="AWS session, Session Manager plugin, expect and nc locally, nc on the instance; ssm:StartSession"
-/>
-
-```text
-ck ec2 upload <instance-id> <local-file> [remote-path] [port]
-```
-
-| Argument | Description |
-|---|---|
-| `instance-id` | Required. The target instance. |
-| `local-file` | Required. The file to send. Must exist. |
-| `remote-path` | Optional. Destination path on the instance. Default: `/home/ec2-user/<file name>`. Parent directories are created. |
-| `port` | Optional. TCP port used for the transfer on both sides. Default: a random port from 50000 to 59999. |
-
-```bash
-ck ec2 upload i-0123456789abcdef0 ./build.tar.gz /tmp/build.tar.gz
-```
-
-### How it works
-
-1. If `expect` or `nc` is missing locally, CloudKit offers to install them with the installer's `--deps` option.
-2. Opens an SSM shell on the instance, creates the destination directory, and starts `nc -l -p <port>` writing to the destination file.
-3. Opens an SSM port-forwarding session for the same port.
-4. Streams the file through it with `nc localhost <port>` and waits up to 60 seconds for the instance to confirm.
-5. Prints the remote file's `ls -lh` and `md5sum`, and the local MD5. **Compare the two checksums yourself**; CloudKit does not compare them.
-
-<Aside type="danger" title="Side effects">
-- The upload ends by running `pkill -f "aws ssm"` on your machine, which **terminates every other SSM session and port forward** you have open, not only the upload's own sessions.
-- The destination file is overwritten without asking. The file is written as the SSM session user (usually `ssm-user`), which must be allowed to write to `remote-path`.
-</Aside>
-
-### Limitations
-
-- `nc` must be installed on the instance and support `nc -l -p <port>`. Minimal images often lack it; check with `command -v nc` in `ck ec2 session`.
-- The default path assumes an `ec2-user` home directory (Amazon Linux). On Ubuntu and other images, pass `remote-path`.
-- The script waits for an SSM shell prompt that starts with `sh-` and has no timeout. If the instance's Session Manager preferences start a different shell or prompt, the upload hangs; press `Ctrl+C`.
-- One file per run; there is no download direction. For directories, archive them first.
-- In **bash**, the upload script is not found unless your current directory is CloudKit's `services/` directory, because of a known path issue. zsh is not affected. See [Known limitations](/reference/limitations/#ec2-upload).
-
-**Related:** [Transfer files](/guides/file-transfer/), [File transfer failures](/troubleshooting/#file-transfer-fails)

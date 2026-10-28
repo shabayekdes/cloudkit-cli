@@ -1,36 +1,4 @@
 # shellcheck shell=bash
-# Resolve services dir when sourced (BASH_SOURCE is set when sourced)
-if [[ -n "${BASH_SOURCE[0]:-}" ]]; then
-  SERVICES_DIR=$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)
-else
-  SERVICES_DIR=$(cd "$(dirname "$0")" && pwd)
-fi
-export SERVICES_DIR
-
-# `ck ec2 upload` needs expect and nc, which the installer leaves out; offer
-# to install them on first use. Returns 1 if any are still missing.
-_ck_ec2_upload_deps() {
-  local tool missing=""
-  for tool in expect nc; do
-    command -v "$tool" > /dev/null 2>&1 || missing="$missing,$tool"
-  done
-  missing="${missing#,}"
-  [ -z "$missing" ] && return 0
-
-  printf "%sck ec2 upload needs: %s%s\n" "${YELLOW:-}" "$missing" "${NC:-}"
-  local installer="${CLOUDKIT_DIR:-}/install.sh"
-  if [ -f "$installer" ]; then
-    bash "$installer" --deps "$missing" || true
-  fi
-  # Literal list, not $missing: zsh doesn't word-split unquoted variables
-  for tool in expect nc; do
-    if ! command -v "$tool" > /dev/null 2>&1; then
-      printf "%sError: %s is not installed; install it and retry.%s\n" "${RED:-}" "$tool" "${NC:-}"
-      return 1
-    fi
-  done
-}
-
 # EC2 CLI function
 _ck_ec2() {
   case "$1" in
@@ -147,24 +115,6 @@ _ck_ec2() {
       fi
       ;;
 
-    upload)
-      if [[ $# -lt 3 ]]; then
-        echo "Usage: ck ec2 upload <instance-id> <local-file> [remote-path] [port]"
-        echo ""
-        echo "Examples:"
-        echo "  ck ec2 upload i-1234567890abcdef0 /local/file.txt /home/ec2-user/file.txt 8888"
-        return 1
-      fi
-
-      local instance_id="$2"
-      local file_to_send="$3"
-      local remote_file_name="$4"
-      local port="$5"
-
-      _ck_ec2_upload_deps || return 1
-      "$SERVICES_DIR/_ec2_upload.sh" "$instance_id" "$file_to_send" "$remote_file_name" "$port"
-      ;;
-
     *)
       cat << 'EOF'
 Usage: ck ec2 <command> [options]
@@ -180,8 +130,6 @@ Commands:
                             Forward a port to local machine
                             - Without host: forwards from EC2 instance itself
                             - With host: forwards from remote service through EC2
-  upload <instance-id> <local-file> [remote-path] [port]
-                            Upload a file to an instance via SSM
 
 Examples:
   ck ec2 ls
@@ -193,7 +141,6 @@ Examples:
   ck ec2 stop i-1234567890abcdef0
   ck ec2 port-forward 8080 8080 i-1234567890abcdef0
   ck ec2 port-forward 3306 3306 i-1234567890abcdef0 mydb.123456789012.us-west-2.rds.amazonaws.com
-  ck ec2 upload i-1234567890abcdef0 /local/file.txt /home/ec2-user/file.txt 8888
 EOF
       return 1
       ;;

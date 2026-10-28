@@ -45,7 +45,7 @@ curl -fsSL https://github.com/shabayekdes/cloudkit-cli/releases/latest/download/
 | `--no-rc` | Don't edit shell rc files. You then [load CloudKit yourself](#manual-installation). |
 | `--no-setup` | Don't offer `ck setup` at the end. |
 | `--dir <path>` | Install directory. Default: `$CLOUDKIT_HOME`, else `~/.cloudkit`. Ignored when the installer runs from a clone. |
-| `--deps <tools>` | Install only the comma-separated tools (for example `expect,nc`) and exit. |
+| `--deps <tools>` | Install only the comma-separated tools (for example `jq,python3`) and exit. |
 | `--uninstall` | Remove CloudKit. See [Uninstall](#uninstall). |
 | `-h`, `--help` | Show the options. |
 
@@ -62,9 +62,8 @@ Piping a script from the internet into `bash` runs it with your permissions, and
 | `curl` | The installer itself | Always (common) |
 | [AWS CLI **v2**](https://docs.aws.amazon.com/cli/latest/userguide/getting-started-install.html) | All `ck aws`, `ck ec2` and `ck ecs` commands. Version 1 is not supported. | With `--aws` / `--all` |
 | `unzip` | Installing the AWS CLI on Linux | With `--aws` / `--all` |
-| [Session Manager plugin](https://docs.aws.amazon.com/systems-manager/latest/userguide/session-manager-working-with-install-plugin.html) | `ck ec2 session`, `port-forward`, `upload`; `ck ecs exec`, `exec-running` | With `--aws` / `--all` (`brew`, `apt`, `dnf`, `yum` only) |
+| [Session Manager plugin](https://docs.aws.amazon.com/systems-manager/latest/userguide/session-manager-working-with-install-plugin.html) | `ck ec2 session`, `port-forward`; `ck ecs exec`, `exec-running` | With `--aws` / `--all` (`brew`, `apt`, `dnf`, `yum` only) |
 | [Google Cloud CLI](https://cloud.google.com/sdk/docs/install) (`gcloud`) | All `ck gcloud`, `ck gce` and `ck mig` commands | With `--gcp` / `--all` |
-| `expect`, `nc` | `ck ec2 upload` only | No. `ck ec2 upload` offers to install them the first time you run it. |
 | `column`, `awk`, `sed`, `grep` | Tables and parsing | Preinstalled on macOS and most Linux distributions |
 
 How the installer gets each tool:
