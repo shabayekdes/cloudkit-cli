@@ -9,7 +9,8 @@ export default defineConfig({
 	integrations: [
 		starlight({
 			title: 'CloudKit',
-			description: 'One ck command for AWS and Google Cloud.',
+			description:
+				'One ck command for AWS and Google Cloud: per-terminal sessions, SSM and IAP connections, and service shortcuts.',
 			logo: { src: './src/assets/logo-icon.svg' },
 			social: [
 				{ icon: 'github', label: 'GitHub', href: 'https://github.com/shabayekdes/cloudkit-cli' },
@@ -17,21 +18,58 @@ export default defineConfig({
 			editLink: {
 				baseUrl: 'https://github.com/shabayekdes/cloudkit-cli/edit/main/website/',
 			},
+			customCss: ['./src/styles/custom.css'],
+			lastUpdated: true,
 			plugins: [starlightLinksValidator()],
 			sidebar: [
 				{
 					label: 'Start here',
-					items: ['getting-started', 'sessions'],
+					items: [
+						{ label: 'Quick start', slug: 'getting-started' },
+						'start/installation',
+						'start/aws',
+						'start/gcloud',
+					],
 				},
 				{
-					label: 'Commands',
+					label: 'Concepts',
+					items: [
+						'concepts/how-it-works',
+						'sessions',
+						'concepts/targeting',
+						'concepts/prompt-and-production',
+					],
+				},
+				{
+					label: 'Guides',
+					items: [
+						'guides/connect-ec2',
+						'guides/connect-gce',
+						'guides/start-stop',
+						'guides/ecs',
+						'guides/port-forwarding',
+						'guides/file-transfer',
+						'guides/environments',
+						'guides/diagnose',
+					],
+				},
+				{
+					label: 'Command reference',
 					items: [{ autogenerate: { directory: 'commands' } }],
 				},
 				{
 					label: 'Reference',
-					items: ['configuration', 'troubleshooting'],
+					items: [
+						'configuration',
+						'reference/permissions',
+						'reference/limitations',
+						'troubleshooting',
+					],
 				},
-				{ label: 'Contributing', slug: 'contributing' },
+				{
+					label: 'Project',
+					items: ['contributing'],
+				},
 			],
 		}),
 	],

@@ -58,13 +58,13 @@ check() {
 }
 
 echo "=== Docs: every subcommand is in ck help and the docs site ==="
-check aws "$DOCS/sessions.md" "$(subcommands ck.sh ck 8 aws)"
-check gcloud "$DOCS/sessions.md" "$(subcommands ck.sh ck 8 gcloud)"
-check ec2 "$DOCS/commands/ec2.md" "$(subcommands services/ec2.sh _ck_ec2 4)"
-check ecs "$DOCS/commands/ecs.md" "$(subcommands services/ecs.sh _ck_ecs 4)"
-check gce "$DOCS/commands/gce.md" "$(subcommands services/gce.sh _ck_gce 4)"
-check mig "$DOCS/commands/mig.md" "$(subcommands services/gce_ig.sh _ck_mig 4)"
-check setup "$DOCS/commands/setup.md" "$(subcommands services/setup.sh _ck_setup 4)"
+check aws "$DOCS/commands/aws.mdx" "$(subcommands ck.sh ck 8 aws)"
+check gcloud "$DOCS/commands/gcloud.mdx" "$(subcommands ck.sh ck 8 gcloud)"
+check ec2 "$DOCS/commands/ec2.mdx" "$(subcommands services/ec2.sh _ck_ec2 4)"
+check ecs "$DOCS/commands/ecs.mdx" "$(subcommands services/ecs.sh _ck_ecs 4)"
+check gce "$DOCS/commands/gce.mdx" "$(subcommands services/gce.sh _ck_gce 4)"
+check mig "$DOCS/commands/mig.mdx" "$(subcommands services/gce_ig.sh _ck_mig 4)"
+check setup "$DOCS/commands/setup.mdx" "$(subcommands services/setup.sh _ck_setup 4)"
 
 [ "$errors" -eq 0 ] || fail "$errors docs/help gap(s) found; update ck help and website/src/content/docs/"
 

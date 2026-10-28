@@ -1,103 +1,113 @@
 ---
-title: Getting started
-description: Install CloudKit, its dependencies, and set up your AWS and gcloud credentials.
+title: Quick start
+description: Install CloudKit, check dependencies, set up credentials, and run your first AWS or Google Cloud command.
 ---
 
-## Quick install
+import { Aside, LinkCard, Steps, Tabs, TabItem } from '@astrojs/starlight/components';
 
-```bash
-curl -fsSL https://github.com/shabayekdes/cloudkit-cli/releases/latest/download/install.sh | bash
-```
+This page takes you from nothing to a working `ck` command in about five minutes. Each step links to a page with more detail.
 
-The installer:
+## Before you begin
 
-1. Asks which clouds you use: AWS, Google Cloud, both, or neither (CloudKit and its common tools only)
-2. Installs missing dependencies after one confirmation, using `brew` (macOS) or `apt` / `dnf` / `yum` / `pacman` (Linux)
-3. Downloads the **latest release** of CloudKit to `~/.cloudkit` (or switches an existing install to it)
-4. Adds a `source …/main.sh` block to `~/.zshrc` / `~/.bashrc` (re-running never duplicates it)
-5. Offers to set up your AWS / gcloud credentials
-6. Offers to restart your shell so `ck` works right away
-
-### Installer options
-
-Pass options after `bash -s --`, for example:
-
-```bash
-curl -fsSL https://github.com/shabayekdes/cloudkit-cli/releases/latest/download/install.sh | bash -s -- --gcp --yes
-```
-
-| Option | Effect |
+| Requirement | Details |
 |---|---|
-| `--aws` / `--gcp` / `--all` | Install dependencies for one cloud or both (default: ask) |
-| `--core` | Install only the common tools (`curl`, `jq`, `python3`), without the AWS CLI or gcloud |
-| `--yes` | Don't ask for confirmation |
-| `--no-deps` | Skip dependency installation |
-| `--no-rc` | Don't edit shell rc files |
-| `--no-setup` | Don't offer credential setup |
-| `--dir <path>` | Install directory (default: `$CLOUDKIT_HOME` or `~/.cloudkit`) |
-| `--deps <tools>` | Install only these tools and exit, e.g. `--deps expect,nc` |
-| `--uninstall` | Remove CloudKit (never touches `~/.aws` or gcloud configuration) |
+| Operating system | macOS or Linux. Windows is not supported directly. |
+| Shell | **bash** or **zsh**. CloudKit is loaded into your shell as functions, so it needs one of these as your interactive shell. |
+| Package manager | Optional, for automatic dependency installs: `brew` (macOS), or `apt`, `dnf`, `yum` or `pacman` (Linux). |
+| Cloud account | An AWS account you can sign in to (SSO, access keys, or a role), and/or a Google account with access to a Google Cloud project. |
+| `sudo` | Needed on Linux when the installer installs system packages. |
 
-### Upgrade
+## Steps
 
-Re-run the install command: it moves `~/.cloudkit` to the newest release. Check what you have with:
+<Steps>
 
-```bash
-ck version
-```
+1. **Install CloudKit.**
 
-## Install from a clone
+   ```bash
+   curl -fsSL https://github.com/shabayekdes/cloudkit-cli/releases/latest/download/install.sh | bash
+   ```
 
-```bash
-git clone https://github.com/shabayekdes/cloudkit-cli.git
-cd cloudkit-cli
-./install.sh
-```
+   The installer asks which clouds you use, installs missing tools (AWS CLI v2, Session Manager plugin, `gcloud`, `jq`, `python3`) after one confirmation, downloads the latest release to `~/.cloudkit`, and adds a `source` line to your shell's rc file. See [Installation](/start/installation/) for options and manual installs.
 
-Running `./install.sh` from a clone uses that clone in place, so `git pull` or `git checkout <tag>` controls the version.
+2. **Load CloudKit in your terminal.**
 
-## Dependencies
+   Accept the installer's offer to start a new shell, or open a new terminal. Then confirm `ck` is available:
 
-The installer handles these for you; install them by hand if you prefer:
+   ```bash
+   ck version
+   ```
 
-| Tool | Needed for |
+3. **Check dependencies.**
+
+   ```bash
+   ck doctor
+   ```
+
+   Every line should show `✓` or `!`. A `✗` means a required tool is missing; the line tells you how to install it. Warnings (`!`) for things such as Application Default Credentials are optional. See [`ck doctor`](/commands/setup/#ck-doctor).
+
+4. **Set up credentials.** Skip this if you already have AWS profiles in `~/.aws/config` or gcloud configurations.
+
+   <Tabs syncKey="cloud">
+   <TabItem label="AWS">
+
+   ```bash
+   ck setup aws
+   ```
+
+   Choose **AWS SSO / IAM Identity Center**, **access keys**, or a **role assumed from an existing profile**. CloudKit runs the standard `aws configure` commands, so the result is an ordinary profile in `~/.aws/config`.
+
+   </TabItem>
+   <TabItem label="Google Cloud">
+
+   ```bash
+   ck setup gcloud
+   ```
+
+   Name a configuration (for example `staging`), enter the account, project, region and zone, and log in in the browser.
+
+   </TabItem>
+   </Tabs>
+
+5. **Start a session and run a command.**
+
+   <Tabs syncKey="cloud">
+   <TabItem label="AWS">
+
+   ```bash
+   ck aws login       # pick an SSO profile; logs in only if needed
+   ck ec2 ls          # list instances in the profile's region
+   ck ec2 session     # pick a running instance and open a shell
+   ```
+
+   </TabItem>
+   <TabItem label="Google Cloud">
+
+   ```bash
+   ck gcloud login    # pick a configuration for this terminal
+   ck gce ls          # list VMs in the configuration's project
+   ck gce ssh         # pick a running VM and SSH to it
+   ```
+
+   </TabItem>
+   </Tabs>
+
+</Steps>
+
+<Aside type="tip" title="Sessions are per terminal">
+The profile or configuration you pick applies to the current terminal only. A new terminal starts with no AWS profile and no gcloud account until you run `ck aws login` or `ck gcloud login`. See [Sessions and credentials](/sessions/).
+</Aside>
+
+## If something goes wrong
+
+| Symptom | Fix |
 |---|---|
-| `jq`, `python3` | everything |
-| [AWS CLI v2](https://docs.aws.amazon.com/cli/latest/userguide/getting-started-install.html) | AWS commands |
-| [Session Manager plugin](https://docs.aws.amazon.com/systems-manager/latest/userguide/session-manager-working-with-install-plugin.html) | `ck ec2 session`, `port-forward`, `upload`, `ck ecs exec` |
-| `expect`, `nc` | `ck ec2 upload` (offered on first use) |
-| [Google Cloud CLI](https://cloud.google.com/sdk/docs/install) (`gcloud`) | Google Cloud commands |
+| `ck: command not found` | The rc file was not reloaded. Open a new terminal or run `exec zsh` / `exec bash`. [More](/troubleshooting/#ck-command-not-found) |
+| `ck aws login` says no profiles were found | It lists only SSO profiles. Use `ck aws switch` for access-key profiles. [More](/troubleshooting/#no-profiles-in-ck-aws-login) |
+| `You do not currently have an active account selected` | Expected in a new terminal. Run `ck gcloud login`. [More](/troubleshooting/#gcloud-says-no-active-account-in-a-new-terminal) |
+| SSM session fails to start | The instance needs the SSM agent and an instance role. [More](/troubleshooting/#ssm-session-fails-to-start) |
 
-When installing by hand, add this line to your `~/.zshrc` or `~/.bashrc`:
+## Next steps
 
-```bash
-source /path/to/cloudkit-cli/main.sh
-```
-
-## Set up credentials
-
-```bash
-ck doctor          # check tools, AWS profiles, gcloud configurations, ADC, rc file
-ck setup aws       # AWS SSO (IAM Identity Center), access keys, or a chained role
-ck setup gcloud    # create/update a gcloud configuration, log in, optional ADC
-```
-
-`ck setup` writes standard files (`~/.aws/config`, gcloud configurations), so profiles you already have keep working. See [Setup and status](/commands/setup/) for details.
-
-## First steps
-
-```bash
-ck aws login       # pick a profile and log in
-ck ec2 session     # pick a running instance and open a shell
-ck help            # list all commands
-```
-
-Run `ck help <command>` (for example `ck help gce`) for a command's options.
-
-## Uninstall
-
-```bash
-~/.cloudkit/install.sh --uninstall
-```
-
-This removes the rc block and `~/.cloudkit`. Your `~/.aws` and gcloud configuration are left untouched.
+<LinkCard title="First steps with AWS" href="/start/aws/" description="Profile types, logging in, and a first EC2 and ECS workflow." />
+<LinkCard title="First steps with Google Cloud" href="/start/gcloud/" description="Configurations, logging in, and a first Compute Engine workflow." />
+<LinkCard title="How CloudKit works" href="/concepts/how-it-works/" description="What ck does in your shell and which native commands it runs." />

@@ -25,7 +25,7 @@ CloudKit is a set of shell helpers that wraps the AWS CLI and `gcloud` behind a 
 
 - **Session management** — pick an AWS profile (SSO, access keys, chained roles) or a gcloud configuration from a list, log in if needed, and see account, region, identity and credential expiry in one table.
 - **Per-terminal sessions** — each terminal has its own active profile/configuration, like `AWS_PROFILE`. Your prompt shows `[profile:region]` and `[gcloud:account:project]`, with a red `[PROD]` marker and banner for production.
-- **Service shortcuts** — list, start, stop and connect to EC2 and GCE instances, exec into ECS tasks, forward ports through SSM or IAP, and manage instance groups. Most commands offer an interactive picker when you leave out the instance.
+- **Service shortcuts** — list, start, stop and connect to EC2 and GCE instances, exec into ECS tasks, forward ports through SSM or IAP, and manage instance groups. `ck ec2 session` and `ck gce ssh` offer an interactive picker when you leave out the instance.
 - **Guided setup** — `ck setup` walks you through creating AWS profiles and gcloud configurations; `ck doctor` checks that everything is installed and configured.
 
 Works in **bash** and **zsh** on **macOS** and **Linux**.

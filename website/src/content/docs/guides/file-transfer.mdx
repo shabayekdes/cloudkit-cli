@@ -1,0 +1,87 @@
+---
+title: Transfer files to and from instances
+description: Copy files to and from Compute Engine VMs with ck gce scp, and upload a file to an EC2 instance through SSM with ck ec2 upload.
+---
+
+import { Aside, Steps, Tabs, TabItem } from '@astrojs/starlight/components';
+
+| | Compute Engine | EC2 |
+|---|---|---|
+| Command | [`ck gce scp`](/commands/gce/#ck-gce-scp) | [`ck ec2 upload`](/commands/ec2/#ck-ec2-upload) |
+| Upload | Yes | Yes, one file per run |
+| Download | Yes | No |
+| Directories | Yes, with `-r` | No (archive first) |
+| Transport | SCP over SSH, optionally through IAP | `nc` over an SSM port forward |
+
+## Compute Engine: ck gce scp
+
+**Prerequisites:** a gcloud session and SSH access to the VM (see [Connect to a Compute Engine VM](/guides/connect-gce/#prerequisites)).
+
+Write remote paths as `<instance>:<path>`:
+
+```bash
+# Upload a file
+ck gce scp ./app.env my-vm:/tmp/app.env
+
+# Download a log
+ck gce scp my-vm:/var/log/syslog ./syslog
+
+# Upload a directory through IAP (no external IP needed)
+ck gce scp -r ./dist my-vm:/tmp/dist --tunnel-iap
+
+# Several sources into one remote directory
+ck gce scp ./a.txt ./b.txt my-vm:/tmp/
+```
+
+CloudKit looks up the zone from the remote path's instance name; add `--zone` to skip that. Files are written as your SSH user, so copy to a directory you can write (`/tmp` or your home), then move them with `sudo` in `ck gce ssh` if needed. Existing files are overwritten.
+
+## EC2: ck ec2 upload
+
+**Prerequisites:**
+
+- An SSM-managed instance ([details](/guides/connect-ec2/#prerequisites)).
+- `expect` and `nc` on your machine. The first run offers to install them.
+- `nc` on the instance, supporting `nc -l -p <port>`.
+
+<Aside type="danger" title="Closes your other SSM sessions">
+When it finishes, `ck ec2 upload` runs `pkill -f "aws ssm"`, which ends **every** SSM session and port forward on your machine, not just its own. Close or expect to reopen other tunnels before uploading.
+</Aside>
+
+<Steps>
+
+1. Check that `nc` exists on the instance:
+
+   ```bash
+   ck ec2 session i-0123456789abcdef0
+   command -v nc && exit
+   ```
+
+2. Upload the file. Pass a destination path: the default `/home/ec2-user/<name>` only exists on Amazon Linux.
+
+   ```bash
+   ck ec2 upload i-0123456789abcdef0 ./build.tar.gz /tmp/build.tar.gz
+   ```
+
+3. The script prints its progress (`Step 1` to `Step 6`), then `✓ Upload complete!`. Compare the **remote** `md5sum` line with `Local MD5:`; they must match.
+
+</Steps>
+
+<Aside type="caution" title="bash users">
+In bash, `ck ec2 upload` currently fails to find its helper script unless the current directory is CloudKit's `services/` directory. Run it from zsh, or run the helper directly with `expect ~/.cloudkit/services/_ec2_upload.sh <instance-id> <local-file> [remote-path] [port]`. See [Known limitations](/reference/limitations/#ec2-upload).
+</Aside>
+
+### Alternatives on AWS
+
+For downloads, directories, or large files, the usual alternative is S3: upload with `aws s3 cp` from your machine, then download with `aws s3 cp` in `ck ec2 session` (the instance role needs read access to the bucket).
+
+## Common failures
+
+| Symptom | Cause |
+|---|---|
+| `Error: Local file '…' not found` | Wrong local path. |
+| Upload hangs at `Step 1` | The SSM shell prompt does not start with `sh-` (custom Session Manager shell profile). Press `Ctrl+C`. |
+| `nc: command not found` in the remote output | Install `nc` on the instance. |
+| `Permission denied` on the remote path | `ssm-user` cannot write there. Use `/tmp`. |
+| `scp: … Permission denied` (gce) | Your SSH user cannot write to the destination. |
+
+See [File transfer fails](/troubleshooting/#file-transfer-fails).
